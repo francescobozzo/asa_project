@@ -1,6 +1,6 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
-import DeliverooMap from './belief-sets/matrix-map.js';
 import IntentionPlanner from './agents/intention-planner.js';
+import DeliverooMap from './belief-sets/matrix-map.js';
 
 const client = new DeliverooApi(
   'http://localhost:8080',

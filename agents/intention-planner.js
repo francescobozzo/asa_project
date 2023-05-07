@@ -1,6 +1,6 @@
-import TileStatus from '../belief-sets/utils.js';
-import Parcel from '../belief-sets/parcel.js';
 import Agent from '../belief-sets/agent.js';
+import Parcel from '../belief-sets/parcel.js';
+import TileStatus from '../belief-sets/utils.js';
 
 function getDifference(setA, setB) {
   return new Set([...setA].filter((element) => !setB.has(element)));
@@ -32,8 +32,8 @@ class IntentionPlanner {
     for (const agentId of getDifference(this.savedAgentIds, viewedAgentIds)) this.agents.get(agentId).isVisible = false;
     for (const agent of this.agents.values()) {
       this.beliefSet.updateTile(
-        Math.ceil(agent.x),
-        Math.ceil(agent.y),
+        Math.round(agent.x),
+        Math.round(agent.y),
         agent.isVisible ? TileStatus.NonWalkable : TileStatus.Walkable
       );
     }
@@ -73,7 +73,7 @@ class IntentionPlanner {
     this.x = x;
     this.y = y;
     this.score = score;
-    this.beliefSet.updateTile(x, y, TileStatus.Player);
+    this.beliefSet.updateTile(Math.round(x), Math.round(y), TileStatus.Player);
   }
 }
 
