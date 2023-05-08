@@ -1,6 +1,6 @@
 import Agent from '../belief-sets/agent.js';
 import Parcel from '../belief-sets/parcel.js';
-import TileStatus from '../belief-sets/utils.js';
+import { TileStatus } from '../belief-sets/utils.js';
 
 function getDifference(setA, setB) {
   return new Set([...setA].filter((element) => !setB.has(element)));
