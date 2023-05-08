@@ -17,3 +17,9 @@ npm install
 ```bash
 npm start
 ```
+
+
+## Useful resources
+
+- [slides about multi-goal A* and IDA*](http://www.cs.cmu.edu/~maxim/classes/robotplanning_sp19/lectures/mgoalastarandida_16350_sp19.pdf)
+- [A* introduction](https://www.redblobgames.com/pathfinding/a-star/introduction.html)
