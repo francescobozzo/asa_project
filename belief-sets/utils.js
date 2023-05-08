@@ -33,6 +33,7 @@ export function TupleSet() {
     return true;
   };
 }
+
 export let Tuple = (function () {
   let map = new Map();
 
@@ -62,4 +63,12 @@ export let Tuple = (function () {
 
 export function ManhattanDistance(a, b) {
   return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+}
+
+export function computeAction(x1, y1, x2, y2) {
+  if (x1 > x2) return 'left';
+  if (x2 > x1) return 'right';
+  if (y1 > y2) return 'down';
+  if (y2 > y1) return 'up';
+  return undefined;
 }

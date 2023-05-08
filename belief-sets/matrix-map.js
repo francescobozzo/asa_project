@@ -1,7 +1,7 @@
-import { TileStatus, TupleSet, Tuple, ManhattanDistance } from './utils.js';
-import Parcel from './parcel.js';
-import Agent from './agent.js';
 import PriorityQueue from 'priorityqueue';
+import Agent from './agent.js';
+import { tileToPddl } from './pddl.js';
+import { ManhattanDistance, TileStatus, Tuple, computeAction } from './utils.js';
 
 class DeliverooMap {
   constructor(width, height, tiles) {
@@ -52,13 +52,6 @@ class DeliverooMap {
     return neighbors;
   }
 
-  #computeAction(x1, y1, x2, y2) {
-    if (x1 > x2) return 'left';
-    if (x2 > x1) return 'right';
-    if (y1 > y2) return 'down';
-    if (y2 > y1) return 'up';
-  }
-
   shortestPathFromTo(startX, startY, endX, endY) {
     class Elem {
       constructor(tuple, priority) {
@@ -87,12 +80,56 @@ class DeliverooMap {
           frontier.push(new Elem(neighbor, priority));
           cameFrom.set(
             neighbor,
-            Tuple(current[0], current[1], this.#computeAction(current[0], current[1], neighbor[0], neighbor[1]))
+            Tuple(current[0], current[1], computeAction(current[0], current[1], neighbor[0], neighbor[1]))
           );
         }
       }
     }
     return cameFrom;
+  }
+
+  toPddlDomain() {
+    let currentPosition = null;
+    const tiles = [];
+    const availableMoves = [];
+    const height = this.map.length;
+
+    for (let i = 0; i < height; i++) {
+      const width = this.map[i].length;
+
+      for (let j = 0; j < width; j++) {
+        tiles.push([i, j]);
+
+        if (this.map[i][j] === TileStatus.Player) currentPosition = [i, j];
+
+        if (this.map[i][j] === TileStatus.NonWalkable) continue;
+
+        if (i + 1 < height && this.map[i + 1][j] !== TileStatus.NonWalkable) {
+          availableMoves.push([i, j, i + 1, j]);
+        }
+        if (i - 1 >= 0 && this.map[i - 1][j] !== TileStatus.NonWalkable) {
+          availableMoves.push([i, j, i - 1, j]);
+        }
+        if (j + 1 < width && this.map[i][j + 1] !== TileStatus.NonWalkable) {
+          availableMoves.push([i, j, i, j + 1]);
+        }
+        if (j - 1 >= 0 && this.map[i][j - 1] !== TileStatus.NonWalkable) {
+          availableMoves.push([i, j, i, j - 1]);
+        }
+      }
+    }
+
+    const movePredicates = availableMoves.map(
+      (move) => `(can-move ${tileToPddl(move[0], move[1])} ${tileToPddl(move[2], move[3])})`
+    );
+
+    const objects = tiles.map((tile) => tileToPddl(tile[0], tile[1]));
+    const predicates = movePredicates.join(' '); // add current position
+
+    return {
+      objects: objects,
+      predicates: predicates,
+    };
   }
 }
 

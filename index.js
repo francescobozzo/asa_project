@@ -1,7 +1,6 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import IntentionPlanner from './agents/intention-planner.js';
 import DeliverooMap from './belief-sets/matrix-map.js';
-import { TileStatus, TupleSet, Tuple } from './belief-sets/utils.js';
 
 const client = new DeliverooApi(
   'http://localhost:8080',
