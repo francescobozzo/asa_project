@@ -1,6 +1,6 @@
 import Agent from '../belief-sets/agent.js';
 import Parcel from '../belief-sets/parcel.js';
-import { TileStatus } from '../belief-sets/utils.js';
+import { TileStatus, Tuple } from '../belief-sets/utils.js';
 
 function getDifference(setA, setB) {
   return new Set([...setA].filter((element) => !setB.has(element)));
@@ -14,6 +14,7 @@ class IntentionPlanner {
     this.parcels = new Map();
     this.savedParcelIds = new Set();
     this.isVerbose = verbose;
+    this.trackedParcelId = null;
   }
 
   agentsSensingHandler(agents) {
@@ -64,6 +65,7 @@ class IntentionPlanner {
 
     for (const parcel of this.parcels.values())
       this.beliefSet.updateTile(parcel.x, parcel.y, parcel.isVisible ? parcel.reward : TileStatus.Walkable);
+    if (this.trackedParcelId === null) this.trackedParcelId = parcels[0].id;
     if (this.isVerbose) console.log(this.beliefSet.toString());
   }
 
@@ -74,6 +76,23 @@ class IntentionPlanner {
     this.y = y;
     this.score = score;
     this.beliefSet.updateTile(Math.round(x), Math.round(y), TileStatus.Player);
+  }
+
+  getNextAction() {
+    const parcel = this.parcels.get(this.trackedParcelId);
+    if (Number.isInteger(this.x) && Number.isInteger(this.y) && parcel !== undefined) {
+      if (parcel.x === this.x && parcel.y === this.y) return 'pickup';
+      // const randomParcel = this.parcels[Math.floor(Math.random() * this.parcels.length)];
+      const cameFrom = this.beliefSet.shortestPathFromTo(this.x, this.y, parcel.x, parcel.y);
+      let moves = [];
+      let current = cameFrom.get(Tuple(parcel.x, parcel.y));
+      while (current !== null && current !== undefined) {
+        moves.push(current[2]);
+        current = cameFrom.get(Tuple(current[0], current[1]));
+      }
+      return moves.pop();
+    }
+    return;
   }
 }
 

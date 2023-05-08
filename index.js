@@ -12,29 +12,28 @@ client.socket.on('map', (width, height, tiles) => {
   const beliefSet = new DeliverooMap(width, height, tiles);
   console.log(beliefSet.toString());
 
-  const agent = new IntentionPlanner(beliefSet, true);
-  // client.socket.on('agents sensing', (agents) => {
-  //   agent.agentsSensingHandler(agents);
-  // });
-  // client.socket.on('parcels sensing', (parcels) => {
-  //   agent.parcelSensingHandler(parcels);
-  // });
-  client.socket.on('you', (me) => {
-    // agent.updateMe(me.id, me.name, me.x, me.y, me.score);
-    if (Number.isInteger(me.x) && Number.isInteger(me.y)) {
-      const goalX = 1;
-      const goalY = 9;
-      const cameFrom = agent.beliefSet.shortestPathFromTo(me.x, me.y, goalX, goalY);
-      console.log(cameFrom);
-      let moves = [];
-      let current = cameFrom.get(Tuple(goalX, goalY));
-      while (current !== null && current !== undefined) {
-        moves.push(current[2]);
-        current = cameFrom.get(Tuple(current[0], current[1]));
+  const agent = new IntentionPlanner(beliefSet, false);
+  client.socket.on('agents sensing', (agents) => {
+    agent.agentsSensingHandler(agents);
+  });
+  client.socket.on('parcels sensing', (parcels) => {
+    agent.parcelSensingHandler(parcels);
+    const move = agent.getNextAction();
+    if (move !== undefined && move !== null) {
+      switch (move) {
+        case 'pickup':
+          client.pickup((picked) => {
+            console.log(picked);
+          });
+          break;
+        default:
+          client.move(move);
+          break;
       }
-      console.log(moves);
-      client.move(moves.pop());
     }
+  });
+  client.socket.on('you', (me) => {
+    agent.updateMe(me.id, me.name, me.x, me.y, me.score);
   });
 });
 // await client.move('right');

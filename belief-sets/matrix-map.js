@@ -43,7 +43,6 @@ class DeliverooMap {
   }
 
   #computeNeighbors(x, y) {
-    console.log(x, y);
     let neighbors = [];
     // 0 used for walkable and positives for parcels
     if (x > 0 && this.map[x - 1][y] >= 0) neighbors.push(Tuple(x - 1, y));
@@ -86,7 +85,6 @@ class DeliverooMap {
           costSoFar.set(neighbor, newCost);
           const priority = newCost + ManhattanDistance(Tuple(endX, endY), neighbor);
           frontier.push(new Elem(neighbor, priority));
-          if (neighbor[0] === endX && neighbor[1] === endY) console.log(neighbor);
           cameFrom.set(
             neighbor,
             Tuple(current[0], current[1], this.#computeAction(current[0], current[1], neighbor[0], neighbor[1]))
