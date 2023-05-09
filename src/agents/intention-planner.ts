@@ -28,12 +28,12 @@ class IntentionPlanner {
   private y: number;
   private score: number;
   public beliefSet: DeliverooMap;
-  private agents: Map<string, Agent>;
-  private agentIds: Set<string>;
-  private parcels: Map<string, Parcel>;
-  private parcelIds: Set<string>;
-  private isVerbose: boolean = false;
-  public deliveryStations: Tile[];
+  private agents = new Map<string, Agent>();
+  private agentIds = new Set<string>();
+  private parcels = new Map<string, Parcel>();
+  private parcelIds = new Set<string>();
+  private isVerbose = false;
+  public deliveryStations: Tile[] = [];
   private goal: Goal;
 
   constructor(verbose: boolean) {
@@ -74,7 +74,7 @@ class IntentionPlanner {
     }
     for (const parcelId of setDifference(this.parcelIds, currentParcelIds)) {
       let parcel = this.parcels.get(parcelId);
-      if (parcel.reward == 1) {
+      if (parcel.reward === 1) {
         this.parcels.delete(parcel.id);
         this.parcelIds.delete(parcelId);
         this.beliefSet.freeTile(parcel.x, parcel.y);
@@ -85,7 +85,7 @@ class IntentionPlanner {
       this.beliefSet.removeTileValue(parcel.x, parcel.y, parcel.reward);
     }
 
-    if (this.goal === null) {
+    if (!this.goal) {
       for (let i = 0; i < parcels.length; i++)
         if (parcels[i].carriedBy === null)
           this.goal = new Goal(this.beliefSet.getTile(parcels[i].x, parcels[i].y), GoalType.PARCEL, parcels[i].id);

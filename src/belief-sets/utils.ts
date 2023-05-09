@@ -18,11 +18,11 @@ function ManhattanDistance(a: Tile, b: Tile) {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
-function computeAction(b: Tile, a: Tile): Action {
-  if (a.x > b.x) return Action.RIGHT;
-  if (b.x > a.x) return Action.LEFT;
-  if (a.y > a.y) return Action.DOWN;
-  if (b.y > a.y) return Action.UP;
+function computeAction(from: Tile, to: Tile): Action {
+  if (to.x > from.x) return Action.RIGHT;
+  if (from.x > to.x) return Action.LEFT;
+  if (to.y > from.y) return Action.UP;
+  if (from.y > to.y) return Action.DOWN;
   return Action.UNDEFINED;
 }
 

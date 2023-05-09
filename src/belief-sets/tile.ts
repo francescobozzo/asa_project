@@ -1,6 +1,6 @@
 class Tile {
   isOccupied = false;
-  isWalkable = false;
+  isWalkable = true;
   isDelivery = false;
   isMainPlayer = false;
   value = 0;
