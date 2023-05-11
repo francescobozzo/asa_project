@@ -3,6 +3,7 @@ import DeliverooMap from '../belief-sets/matrix-map.js';
 import Parcel from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
 import { Action } from '../belief-sets/utils.js';
+import log from 'loglevel';
 
 function setDifference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
   return new Set([...setA].filter((element) => !setB.has(element)));
@@ -32,15 +33,13 @@ class IntentionPlanner {
   private agentIds = new Set<string>();
   private parcels = new Map<string, Parcel>();
   private parcelIds = new Set<string>();
-  private isVerbose = false;
   public deliveryStations: Tile[] = [];
   private goal: Goal;
 
-  constructor(verbose: boolean) {
-    this.isVerbose = verbose;
-  }
+  constructor(verbose: boolean) {}
 
   agentsSensingHandler(agents: any) {
+    log.info(`INFO : main player perceived ${agents.length} agents`);
     let currentAgentIds = new Set<string>();
     for (const agent of agents) {
       currentAgentIds.add(agent.id);
@@ -56,11 +55,10 @@ class IntentionPlanner {
     for (const agent of this.agents.values())
       if (agent.isVisible) this.beliefSet.occupyTile(agent.x, agent.y, false);
       else this.beliefSet.freeTile(agent.x, agent.y);
-
-    if (this.isVerbose) console.log(this.beliefSet.toString());
   }
 
   parcelSensingHandler(parcels: any) {
+    log.info(`INFO : main player perceived ${parcels.length} parcels`);
     let currentParcelIds = new Set<string>();
     for (const parcel of parcels) {
       currentParcelIds.add(parcel.id);
@@ -89,13 +87,17 @@ class IntentionPlanner {
       for (let i = 0; i < parcels.length; i++)
         if (parcels[i].carriedBy === null)
           this.goal = new Goal(this.beliefSet.getTile(parcels[i].x, parcels[i].y), GoalType.PARCEL, parcels[i].id);
-    } else if (this.goal.type === GoalType.PARCEL && this.parcels.get(this.goal.id).carriedBy === this.id)
+    } else if (
+      !this.goal &&
+      this.goal.type === GoalType.PARCEL &&
+      (!this.parcels.get(this.goal.id) || this.parcels.get(this.goal.id).carriedBy === this.id)
+    )
       this.goal = null;
-    if (this.isVerbose) this.beliefSet.print();
   }
 
   updateMe(id: string, name: string, x: number, y: number, score: number) {
-    this.beliefSet.freeTile(this.x, this.y);
+    log.info(`INFO : update main player position ${x} ${y}`);
+    if (this.x && this.y) this.beliefSet.freeTile(this.x, this.y);
     this.id = id;
     this.name = name;
     this.x = x;
@@ -111,21 +113,23 @@ class IntentionPlanner {
   getNextAction(): Action {
     if (
       this.goal.type === GoalType.PARCEL &&
-      this.parcels.get(this.goal.id).carriedBy &&
-      this.parcels.get(this.goal.id).carriedBy !== this.id
-    )
+      (!this.parcels.get(this.goal.id) ||
+        (this.parcels.get(this.goal.id).carriedBy && this.parcels.get(this.goal.id).carriedBy !== this.id))
+    ) {
       this.goal = null;
+      log.info('INFO : parcel goal no more available, setting it to null');
+    }
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
       if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) return Action.PICKUP;
       if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_AREA) return Action.PUTDOWN;
       const cameFrom = this.beliefSet.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
-      let moves = [];
-      let current = cameFrom.get(this.beliefSet.getTile(this.x, this.y));
-      while (current.tile && current.move === Action.UNDEFINED) {
+      const moves = [];
+      let current = cameFrom.get(this.goal.tile);
+      while (current && current.tile && current.move === Action.UNDEFINED) {
         moves.push(current.move);
         current = cameFrom.get(current.tile);
       }
-      return moves.pop();
+      return moves.pop() ? moves.pop() : Action.UNDEFINED;
     }
     return Action.UNDEFINED;
   }

@@ -3,6 +3,7 @@ class Tile {
   isWalkable = true;
   isDelivery = false;
   isMainPlayer = false;
+  hasParcel = false;
   value = 0;
 
   constructor(public x: number, public y: number) {}

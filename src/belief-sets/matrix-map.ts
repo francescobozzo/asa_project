@@ -1,10 +1,12 @@
-import { PriorityQueue } from 'p-queue-ts';
+import { PriorityQueue } from 'js-sdsl';
 import { PDDLPlan, tileToPddl } from './pddl.js';
 import Tile from './tile.js';
 import { Action, ManhattanDistance, Movement, computeAction } from './utils.js';
+import log from 'loglevel';
 
 class DeliverooMap {
   private map: Tile[][] = [];
+
   constructor(width: number, height: number, tiles: any) {
     this.createMap(width, height, tiles);
   }
@@ -18,6 +20,7 @@ class DeliverooMap {
     for (let i = 0; i < tiles.length; i++)
       if (tiles[i].delivery) this.map[tiles[i].y][tiles[i].x].isDelivery = true;
       else this.map[tiles[i].y][tiles[i].x].isWalkable = false;
+    log.info('INFO : belief set created');
   }
 
   private getNeighbors(tile: Tile): Tile[] {
@@ -38,11 +41,13 @@ class DeliverooMap {
     class Element {
       constructor(public tile: Tile, public priority: number) {}
     }
-    const frontier = new PriorityQueue((a: Element, b: Element): boolean => {
-      console.log(a);
-      console.log(b);
-      return a.priority < b.priority;
-    });
+    const frontier = new PriorityQueue<Element>(
+      [],
+      (a: Element, b: Element): number => {
+        return a.priority - b.priority;
+      },
+      false
+    );
     const goal = this.map[endX][endY];
     frontier.push(new Element(this.map[startX][startY], 0));
     const cameFrom = new Map<Tile, Movement>();
@@ -53,6 +58,7 @@ class DeliverooMap {
     while (frontier.size() > 0) {
       const current: Tile = frontier.pop().tile;
       if (current.isEqual(goal)) break;
+
       for (const neighbor of this.getNeighbors(current)) {
         const newCost = costSoFar.get(current) + 1;
         if (!costSoFar.has(neighbor) || newCost < costSoFar.get(neighbor)) {
@@ -63,6 +69,8 @@ class DeliverooMap {
         }
       }
     }
+    console.log(goal);
+    console.log(cameFrom);
     return cameFrom;
   }
 
@@ -72,28 +80,34 @@ class DeliverooMap {
 
   occupyTile(x: number, y: number, isMainPlayer: boolean) {
     const { roundX, roundY } = this.roundTileCoordinates(x, y);
-    this.map[roundX][roundY].isOccupied = true;
-    if (isMainPlayer) this.map[roundX][roundX].isMainPlayer = true;
+    const tile = this.map[roundX][roundY];
+    tile.isOccupied = true;
+    if (isMainPlayer) tile.isMainPlayer = true;
+    log.debug(`DEBUG: occupyTile: ${roundX},${roundY}`);
   }
 
   freeTile(x: number, y: number) {
-    if (x && y) {
-      const { roundX, roundY } = this.roundTileCoordinates(x, y);
-      this.map[roundX][roundY].isOccupied = false;
-      this.map[roundX][roundY].isMainPlayer = false;
-    } else {
-      console.warn('Failing to free a tile: ', x, y);
-    }
+    const { roundX, roundY } = this.roundTileCoordinates(x, y);
+    const tile = this.map[roundX][roundY];
+    tile.isOccupied = false;
+    tile.isMainPlayer = false;
+    log.debug(`DEBUG: freeTile: ${roundX},${roundY}`);
   }
 
   addTileValue(x: number, y: number, value: number) {
     const { roundX, roundY } = this.roundTileCoordinates(x, y);
-    this.map[roundX][roundY].value += value;
+    const tile = this.map[roundX][roundY];
+    tile.hasParcel = true;
+    tile.value += value;
+    log.debug(`DEBUG: addTileValue: ${roundX},${roundY} ${tile.value}`);
   }
 
   removeTileValue(x: number, y: number, value: number) {
     const { roundX, roundY } = this.roundTileCoordinates(x, y);
-    this.map[roundX][roundY].value -= value;
+    const tile = this.map[roundX][roundY];
+    if (tile.hasParcel) tile.value -= value;
+    tile.hasParcel = false;
+    log.debug(`DEBUG: removeTileValue: ${roundX},${roundY} ${tile.value}`);
   }
 
   getTile(x: number, y: number): Tile {
