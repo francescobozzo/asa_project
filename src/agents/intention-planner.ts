@@ -36,7 +36,7 @@ class IntentionPlanner {
   public deliveryStations: Tile[] = [];
   private goal: Goal;
 
-  constructor(verbose: boolean) {}
+  constructor() {}
 
   agentsSensingHandler(agents: any) {
     log.info(`INFO : main player perceived ${agents.length} agents`);
@@ -112,6 +112,7 @@ class IntentionPlanner {
 
   getNextAction(): Action {
     if (
+      this.goal &&
       this.goal.type === GoalType.PARCEL &&
       (!this.parcels.get(this.goal.id) ||
         (this.parcels.get(this.goal.id).carriedBy && this.parcels.get(this.goal.id).carriedBy !== this.id))

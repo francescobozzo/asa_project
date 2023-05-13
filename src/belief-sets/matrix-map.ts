@@ -9,6 +9,8 @@ class DeliverooMap {
 
   constructor(width: number, height: number, tiles: any) {
     this.createMap(width, height, tiles);
+    this.printWalkable();
+    this.print();
   }
 
   private createMap(width: number, height: number, tiles: any) {
@@ -18,8 +20,10 @@ class DeliverooMap {
     }
 
     for (let i = 0; i < tiles.length; i++)
-      if (tiles[i].delivery) this.map[tiles[i].y][tiles[i].x].isDelivery = true;
-      else this.map[tiles[i].y][tiles[i].x].isWalkable = false;
+      if (tiles[i].delivery) {
+        this.map[tiles[i].x][tiles[i].y].isWalkable = true;
+        this.map[tiles[i].x][tiles[i].y].isDelivery = true;
+      } else this.map[tiles[i].x][tiles[i].y].isWalkable = true;
     log.info('INFO : belief set created');
   }
 
@@ -40,6 +44,9 @@ class DeliverooMap {
   shortestPathFromTo(startX: number, startY: number, endX: number, endY: number): Map<Tile, Movement> {
     class Element {
       constructor(public tile: Tile, public priority: number) {}
+      print() {
+        console.log(`${this.tile.x},${this.tile.y}: ${this.priority}`);
+      }
     }
     const frontier = new PriorityQueue<Element>(
       [],
@@ -56,7 +63,9 @@ class DeliverooMap {
     costSoFar.set(this.map[startX][startY], 0);
 
     while (frontier.size() > 0) {
-      const current: Tile = frontier.pop().tile;
+      let currentElement = frontier.pop();
+      currentElement.print();
+      const current = currentElement.tile;
       if (current.isEqual(goal)) break;
 
       for (const neighbor of this.getNeighbors(current)) {
@@ -142,14 +151,37 @@ class DeliverooMap {
 
   toString(): string {
     let returnValue = '';
-    for (let i = 0; i < this.map.length; i++)
-      for (let j = 0; j < this.map[i].length; j++) returnValue += this.map[i][j].toString();
+    returnValue += `┌${'─'.repeat(this.map.length * 3)}┐\n`;
+    for (let i = 0; i < this.map.length; i++) {
+      returnValue += '│';
+      for (let j = 0; j < this.map[i].length; j++) {
+        const tileValue = this.map[i][j].toString();
+        returnValue += `${' '.repeat(2 - tileValue.length)} ${tileValue}`;
+      }
+      returnValue += '│\n';
+    }
+    returnValue += `└${'─'.repeat(this.map.length * 3)}┘\n`;
 
     return returnValue;
   }
 
   print() {
     console.log(this.toString());
+  }
+
+  printWalkable() {
+    let returnValue = '';
+    returnValue += `┌${'─'.repeat(this.map.length * 3)}┐\n`;
+    for (let i = 0; i < this.map.length; i++) {
+      returnValue += '│';
+      for (let j = 0; j < this.map[i].length; j++) {
+        returnValue += `  ${this.map[i][j].isWalkable ? 'X' : ' '}`;
+      }
+      returnValue += '│\n';
+    }
+    returnValue += `└${'─'.repeat(this.map.length * 3)}┘\n`;
+
+    console.log(returnValue);
   }
 }
 
