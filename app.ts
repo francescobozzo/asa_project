@@ -9,11 +9,10 @@ const client = new DeliverooApi(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNiNzNlOGUyYjllIiwibmFtZSI6InRlc3QxIiwiaWF0IjoxNjgwNjQyMDIwfQ.H1EOanRFuikvCMJ7RZfQE0P6hJaDVWCaA20yCIL2pz8'
 );
 
-log.setLevel('WARN');
+log.setLevel('INFO');
 const agent = new IntentionPlanner();
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles);
-  agent.deliveryStations = tiles.filter((tile: any) => tile.delivery);
 });
 client.socket.on('you', (me: any) => {
   if (agent.beliefSet !== null) agent.updateMe(me.id, me.name, me.x, me.y, me.score);
@@ -21,6 +20,7 @@ client.socket.on('you', (me: any) => {
 client.socket.on('agents sensing', (agents: any) => {
   if (agent.beliefSet !== null) agent.agentsSensingHandler(agents);
 });
+
 client.socket.on('parcels sensing', async (parcels) => {
   if (agent.beliefSet !== null) {
     agent.parcelSensingHandler(parcels);

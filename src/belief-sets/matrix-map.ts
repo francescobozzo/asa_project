@@ -7,26 +7,33 @@ import { Action, ManhattanDistance, Movement, computeAction, getRandomElementFro
 class DeliverooMap {
   private map: Tile[][] = [];
   private validTiles: Tile[] = [];
+  private deliveryStations: Tile[] = [];
 
-  constructor(width: number, height: number, tiles: any) {
-    this.createMap(width, height, tiles);
+  constructor(width: number, height: number, sensedTiles: any) {
+    this.createMap(width, height, sensedTiles);
     this.printWalkable();
     this.print();
   }
 
-  private createMap(width: number, height: number, tiles: any) {
+  private createMap(width: number, height: number, sensedTiles: any) {
     for (let x = 0; x < width; x++) {
       this.map.push([]);
       for (let y = 0; y < height; y++) this.map[x].push(new Tile(x, y));
     }
 
-    for (let i = 0; i < tiles.length; i++) {
-      this.validTiles.push(this.map[tiles[i].x][tiles[i].y]);
-      if (tiles[i].delivery) {
-        this.map[tiles[i].x][tiles[i].y].isWalkable = true;
-        this.map[tiles[i].x][tiles[i].y].isDelivery = true;
-      } else this.map[tiles[i].x][tiles[i].y].isWalkable = true;
+    for (let i = 0; i < sensedTiles.length; i++) {
+      const [x, y] = [sensedTiles[i].x, sensedTiles[i].y];
+      const tile = this.map[x][y];
+
+      this.validTiles.push(tile);
+      if (sensedTiles[i].delivery) {
+        tile.isWalkable = true;
+        tile.isDelivery = true;
+
+        this.deliveryStations.push(tile);
+      } else tile.isWalkable = true;
     }
+
     log.info('INFO : belief set created');
   }
 
@@ -191,6 +198,10 @@ class DeliverooMap {
 
   getRandomValidTile(): Tile {
     return getRandomElementFromArray(this.validTiles);
+  }
+
+  getRandomDeliveryStation(): Tile {
+    return getRandomElementFromArray(this.deliveryStations);
   }
 }
 

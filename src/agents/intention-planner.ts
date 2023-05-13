@@ -14,13 +14,17 @@ function randomElementFromArray(array) {
 }
 
 enum GoalType {
-  PARCEL = 0,
-  DELIVERY_AREA = 1,
-  TILE = 2,
+  PARCEL = 'parcel',
+  DELIVERY_STATION = 'delivery_station',
+  TILE = 'tile',
 }
 
 class Goal {
   constructor(public tile: Tile, public type: GoalType, public id: string) {}
+
+  toString() {
+    return `${this.type} ${this.id} x=${this.tile.x}, y=${this.tile.y}`;
+  }
 }
 
 class IntentionPlanner {
@@ -29,18 +33,18 @@ class IntentionPlanner {
   private x: number;
   private y: number;
   private score: number;
+  private carriedScore: number = 0;
   public beliefSet: DeliverooMap;
   private agents = new Map<string, Agent>();
   private agentIds = new Set<string>();
   private parcels = new Map<string, Parcel>();
   private parcelIds = new Set<string>();
-  public deliveryStations: Tile[] = [];
   private goal: Goal;
 
   constructor() {}
 
   agentsSensingHandler(agents: any) {
-    log.info(`INFO : main player perceived ${agents.length} agents`);
+    log.debug(`DEBUG: main player perceived ${agents.length} agents`);
     let currentAgentIds = new Set<string>();
     for (const agent of agents) {
       currentAgentIds.add(agent.id);
@@ -59,9 +63,11 @@ class IntentionPlanner {
   }
 
   parcelSensingHandler(parcels: any) {
-    log.info(`INFO : main player perceived ${parcels.length} parcels`);
+    log.debug(`DEBUG: main player perceived ${parcels.length} parcels`);
+    this.carriedScore = 0;
     let currentParcelIds = new Set<string>();
     for (const parcel of parcels) {
+      if (parcel.carriedBy === this.id) this.carriedScore += parcel.reward;
       currentParcelIds.add(parcel.id);
       this.parcelIds.add(parcel.id);
       if (this.parcels.has(parcel.id)) {
@@ -84,23 +90,40 @@ class IntentionPlanner {
       this.beliefSet.removeTileValue(parcel.x, parcel.y, parcel.reward);
     }
 
-    if (!this.goal || this.goal.type === GoalType.TILE) {
-      for (let i = 0; i < parcels.length; i++)
-        if (parcels[i].carriedBy === null)
-          this.goal = new Goal(this.beliefSet.getTile(parcels[i].x, parcels[i].y), GoalType.PARCEL, parcels[i].id);
+    this.setGoal();
+  }
+
+  private setGoal() {
+    if (this.carriedScore > 0 && (!this.goal || this.goal.type !== GoalType.DELIVERY_STATION)) {
+      this.goal = new Goal(this.beliefSet.getRandomDeliveryStation(), GoalType.DELIVERY_STATION, 'delivery');
+      log.info('INFO : New Goal: delivering parcel(s)\n\t', this.goal.toString());
+    } else if (!this.goal || this.goal.type === GoalType.TILE) {
+      for (const [parcelId, parcel] of this.parcels)
+        if (parcel.carriedBy === null && parcel.isVisible) {
+          this.goal = new Goal(this.beliefSet.getTile(parcel.x, parcel.y), GoalType.PARCEL, parcelId);
+          log.info('INFO : New Goal: tracking visible parcel\n\t', this.goal.toString());
+          break;
+        }
+
       if (!this.goal) {
         this.goal = new Goal(this.beliefSet.getRandomValidTile(), GoalType.TILE, 'exploration');
+        log.info(
+          'INFO : New Goal: the agent is exploring randomly the map since no parcel is sensed\n\t',
+          this.goal.toString()
+        );
       }
     } else if (
       !this.goal &&
       this.goal.type === GoalType.PARCEL &&
       (!this.parcels.get(this.goal.id) || this.parcels.get(this.goal.id).carriedBy === this.id)
-    )
+    ) {
       this.goal = null;
+      log.info('INFO : New Goal: resetting goal to null since tracked parcel was picked by another agent');
+    }
   }
 
   updateMe(id: string, name: string, x: number, y: number, score: number) {
-    log.info(`INFO : update main player position ${x} ${y}`);
+    log.debug(`DEBUG: update main player position ${x} ${y}`);
     if (this.x && this.y) this.beliefSet.freeTile(this.x, this.y);
     this.id = id;
     this.name = name;
@@ -115,20 +138,11 @@ class IntentionPlanner {
   }
 
   getNextAction(): Action {
-    if (
-      this.goal &&
-      this.goal.type === GoalType.PARCEL &&
-      (!this.parcels.get(this.goal.id) ||
-        (this.parcels.get(this.goal.id).carriedBy && this.parcels.get(this.goal.id).carriedBy !== this.id))
-    ) {
-      this.goal = null;
-      log.info('INFO : parcel goal no more available, setting it to null');
-    }
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
       if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) {
         this.goal = null;
         return Action.PICKUP;
-      } else if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_AREA) {
+      } else if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_STATION) {
         this.goal = null;
         return Action.PUTDOWN;
       } else if (this.isGoalReached() && this.goal.type === GoalType.TILE) {
