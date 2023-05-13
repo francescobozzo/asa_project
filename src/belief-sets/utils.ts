@@ -26,4 +26,8 @@ function computeAction(from: Tile, to: Tile): Action {
   return Action.UNDEFINED;
 }
 
-export { Action, Movement, ManhattanDistance, computeAction };
+function getRandomElementFromArray(array: any[]) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+export { Action, Movement, ManhattanDistance, computeAction, getRandomElementFromArray };

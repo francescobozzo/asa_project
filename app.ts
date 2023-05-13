@@ -1,7 +1,7 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
+import log from 'loglevel';
 import IntentionPlanner from './src/agents/intention-planner.js';
 import DeliverooMap from './src/belief-sets/matrix-map.js';
-import log from 'loglevel';
 import { Action } from './src/belief-sets/utils.js';
 
 const client = new DeliverooApi(
@@ -9,7 +9,7 @@ const client = new DeliverooApi(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNiNzNlOGUyYjllIiwibmFtZSI6InRlc3QxIiwiaWF0IjoxNjgwNjQyMDIwfQ.H1EOanRFuikvCMJ7RZfQE0P6hJaDVWCaA20yCIL2pz8'
 );
 
-log.setLevel('DEBUG');
+log.setLevel('WARN');
 const agent = new IntentionPlanner();
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles);

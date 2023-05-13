@@ -1,9 +1,9 @@
+import log from 'loglevel';
 import Agent from '../belief-sets/agent.js';
 import DeliverooMap from '../belief-sets/matrix-map.js';
 import Parcel from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
 import { Action } from '../belief-sets/utils.js';
-import log from 'loglevel';
 
 function setDifference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
   return new Set([...setA].filter((element) => !setB.has(element)));
@@ -16,6 +16,7 @@ function randomElementFromArray(array) {
 enum GoalType {
   PARCEL = 0,
   DELIVERY_AREA = 1,
+  TILE = 2,
 }
 
 class Goal {
@@ -83,10 +84,13 @@ class IntentionPlanner {
       this.beliefSet.removeTileValue(parcel.x, parcel.y, parcel.reward);
     }
 
-    if (!this.goal) {
+    if (!this.goal || this.goal.type === GoalType.TILE) {
       for (let i = 0; i < parcels.length; i++)
         if (parcels[i].carriedBy === null)
           this.goal = new Goal(this.beliefSet.getTile(parcels[i].x, parcels[i].y), GoalType.PARCEL, parcels[i].id);
+      if (!this.goal) {
+        this.goal = new Goal(this.beliefSet.getRandomValidTile(), GoalType.TILE, 'exploration');
+      }
     } else if (
       !this.goal &&
       this.goal.type === GoalType.PARCEL &&
@@ -121,16 +125,38 @@ class IntentionPlanner {
       log.info('INFO : parcel goal no more available, setting it to null');
     }
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
-      if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) return Action.PICKUP;
-      if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_AREA) return Action.PUTDOWN;
-      const cameFrom = this.beliefSet.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
-      const moves = [];
-      let current = cameFrom.get(this.goal.tile);
-      while (current && current.tile && current.move === Action.UNDEFINED) {
-        moves.push(current.move);
-        current = cameFrom.get(current.tile);
+      if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) {
+        this.goal = null;
+        return Action.PICKUP;
+      } else if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_AREA) {
+        this.goal = null;
+        return Action.PUTDOWN;
+      } else if (this.isGoalReached() && this.goal.type === GoalType.TILE) {
+        this.goal = null;
+        return Action.UNDEFINED;
       }
-      return moves.pop() ? moves.pop() : Action.UNDEFINED;
+      const cameFrom = this.beliefSet.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
+
+      let move = Action.UNDEFINED;
+      const states = [];
+      let currentMovement = cameFrom.get(this.goal.tile);
+      while (
+        currentMovement &&
+        currentMovement.tile &&
+        currentMovement.move !== Action.UNDEFINED
+        // !currentMovement.tile.isEqual(this.beliefSet.getTile(this.x, this.y))
+      ) {
+        move = currentMovement.move;
+
+        let actionLog = `with ${currentMovement.move} from ${currentMovement.tile.x},${currentMovement.tile.y} to`;
+        currentMovement = cameFrom.get(currentMovement.tile);
+        if (currentMovement.move === Action.UNDEFINED) break;
+
+        actionLog += `to ${currentMovement.tile.x},${currentMovement.tile.y} with ${currentMovement.move}`;
+        states.push(actionLog);
+      }
+
+      return move;
     }
     return Action.UNDEFINED;
   }

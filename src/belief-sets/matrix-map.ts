@@ -1,11 +1,12 @@
 import { PriorityQueue } from 'js-sdsl';
+import log from 'loglevel';
 import { PDDLPlan, tileToPddl } from './pddl.js';
 import Tile from './tile.js';
-import { Action, ManhattanDistance, Movement, computeAction } from './utils.js';
-import log from 'loglevel';
+import { Action, ManhattanDistance, Movement, computeAction, getRandomElementFromArray } from './utils.js';
 
 class DeliverooMap {
   private map: Tile[][] = [];
+  private validTiles: Tile[] = [];
 
   constructor(width: number, height: number, tiles: any) {
     this.createMap(width, height, tiles);
@@ -19,11 +20,13 @@ class DeliverooMap {
       for (let y = 0; y < height; y++) this.map[x].push(new Tile(x, y));
     }
 
-    for (let i = 0; i < tiles.length; i++)
+    for (let i = 0; i < tiles.length; i++) {
+      this.validTiles.push(this.map[tiles[i].x][tiles[i].y]);
       if (tiles[i].delivery) {
         this.map[tiles[i].x][tiles[i].y].isWalkable = true;
         this.map[tiles[i].x][tiles[i].y].isDelivery = true;
       } else this.map[tiles[i].x][tiles[i].y].isWalkable = true;
+    }
     log.info('INFO : belief set created');
   }
 
@@ -64,7 +67,7 @@ class DeliverooMap {
 
     while (frontier.size() > 0) {
       let currentElement = frontier.pop();
-      currentElement.print();
+      // currentElement.print();
       const current = currentElement.tile;
       if (current.isEqual(goal)) break;
 
@@ -78,8 +81,6 @@ class DeliverooMap {
         }
       }
     }
-    console.log(goal);
-    console.log(cameFrom);
     return cameFrom;
   }
 
@@ -182,6 +183,14 @@ class DeliverooMap {
     returnValue += `└${'─'.repeat(this.map.length * 3)}┘\n`;
 
     console.log(returnValue);
+  }
+
+  getRandomNeighbor(x: number, y: number): Tile {
+    return getRandomElementFromArray(this.getNeighbors(this.getTile(x, y)));
+  }
+
+  getRandomValidTile(): Tile {
+    return getRandomElementFromArray(this.validTiles);
   }
 }
 
