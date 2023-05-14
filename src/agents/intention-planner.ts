@@ -1,5 +1,5 @@
-import log from 'loglevel';
 import { PriorityQueue } from 'js-sdsl';
+import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
 import Tile from '../belief-sets/tile.js';
 import { Action, ManhattanDistance, Movement, computeAction } from '../belief-sets/utils.js';
@@ -21,8 +21,8 @@ class Goal {
 class IntentionPlanner {
   private id: string;
   private name: string;
-  private x: number;
-  private y: number;
+  private x: number = undefined;
+  private y: number = undefined;
   private score: number;
   private carriedScore: number = 0;
   public beliefSet: DeliverooMap;
@@ -46,7 +46,7 @@ class IntentionPlanner {
 
   updateMe(id: string, name: string, x: number, y: number, score: number) {
     log.debug(`DEBUG: update main player position ${x} ${y}`);
-    if (this.x && this.y) this.beliefSet.freeTile(this.x, this.y);
+    if (this.x !== undefined && this.y !== undefined) this.beliefSet.freeTile(this.x, this.y);
     this.id = id;
     this.name = name;
     this.x = x;

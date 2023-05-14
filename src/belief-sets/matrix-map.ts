@@ -194,7 +194,13 @@ class DeliverooMap {
   }
 
   private roundTileCoordinates(x: number, y: number) {
-    return { roundX: Math.round(x), roundY: Math.round(y) };
+    if (Math.round(x * 10) % 10 === 4 || Math.round(y * 10) % 10 === 4) {
+      return { roundX: Math.ceil(x), roundY: Math.ceil(y) };
+    } else if (Math.round(x * 10) % 10 === 6 || Math.round(y * 10) % 10 === 6) {
+      return { roundX: Math.floor(x), roundY: Math.floor(y) };
+    }
+
+    return { roundX: x, roundY: y };
   }
 
   getRandomNeighbor(x: number, y: number): Tile {
@@ -221,13 +227,15 @@ class DeliverooMap {
       const [x, y] = [sensedTiles[i].x, sensedTiles[i].y];
       const tile = this.map[x][y];
 
-      this.validTiles.push(tile);
       if (sensedTiles[i].delivery) {
         tile.isWalkable = true;
         tile.isDelivery = true;
 
         this.deliveryStations.push(tile);
-      } else tile.isWalkable = true;
+      } else {
+        this.validTiles.push(tile);
+        tile.isWalkable = true;
+      }
     }
 
     log.info('INFO : belief set created');
