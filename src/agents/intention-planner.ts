@@ -2,7 +2,7 @@ import { PriorityQueue } from 'js-sdsl';
 import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
 import Tile from '../belief-sets/tile.js';
-import { Action, ManhattanDistance, Movement, computeAction } from '../belief-sets/utils.js';
+import { Action, computeAction } from '../belief-sets/utils.js';
 
 enum GoalType {
   PARCEL = 'parcel',
@@ -25,6 +25,7 @@ class IntentionPlanner {
   private y: number = undefined;
   private score: number;
   private carriedScore: number = 0;
+  private numCarriedParcels: number = 0;
   public beliefSet: DeliverooMap;
   private goal: Goal;
 
@@ -57,12 +58,17 @@ class IntentionPlanner {
 
   // PUBLIC ACTIONS
   getNextAction(): Action {
+    if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.beliefSet.getTile(this.x, this.y).value) {
+      return Action.PICKUP;
+    }
+
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
       if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) {
         this.goal = null;
         return Action.PICKUP;
       } else if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_STATION) {
         this.carriedScore = 0;
+        this.numCarriedParcels = 0;
         this.goal = null;
         return Action.PUTDOWN;
       } else if (this.isGoalReached() && this.goal.type === GoalType.TILE) {
@@ -71,33 +77,16 @@ class IntentionPlanner {
       }
       const cameFrom = this.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
 
-      let move = Action.UNDEFINED;
-      const states = [];
-      let currentMovement = cameFrom.get(this.goal.tile);
-      while (
-        currentMovement &&
-        currentMovement.tile &&
-        currentMovement.move !== Action.UNDEFINED
-        // !currentMovement.tile.isEqual(this.beliefSet.getTile(this.x, this.y))
-      ) {
-        move = currentMovement.move;
-
-        let actionLog = `with ${currentMovement.move} from ${currentMovement.tile.x},${currentMovement.tile.y} to`;
-        currentMovement = cameFrom.get(currentMovement.tile);
-        if (currentMovement.move === Action.UNDEFINED) break;
-
-        actionLog += `to ${currentMovement.tile.x},${currentMovement.tile.y} with ${currentMovement.move}`;
-        states.push(actionLog);
-      }
-
-      return move;
+      return cameFrom.has(this.goal.tile) ? cameFrom.get(this.goal.tile)[0] : Action.UNDEFINED;
     }
     return Action.UNDEFINED;
   }
 
   // PRIVATE INNER FUNCTIONS
   private computeCarriedScore() {
-    this.carriedScore = this.beliefSet.getCarriedScore(this.id);
+    const [carriedScore, numCarriedParcels] = this.beliefSet.getCarriedScore(this.id);
+    this.carriedScore = carriedScore;
+    this.numCarriedParcels = numCarriedParcels;
   }
 
   private isGoalDeliveryStationFree() {
@@ -116,7 +105,7 @@ class IntentionPlanner {
       log.info(
         'INFO : New Goal: delivering parcel(s)\n\t',
         this.goal.toString(),
-        `with ${this.carriedScore} of potential value`
+        `with ${this.carriedScore} of potential value and ${this.numCarriedParcels} parcels`
       );
     } else if (!this.goal || (this.goal && this.goal.type === GoalType.TILE)) {
       // no goal or random walk
@@ -148,40 +137,58 @@ class IntentionPlanner {
     return this.x === this.goal.tile.x && this.y === this.goal.tile.y;
   }
 
-  private shortestPathFromTo(startX: number, startY: number, endX: number, endY: number): Map<Tile, Movement> {
+  private shortestPathFromTo(startX: number, startY: number, endX: number, endY: number) {
     class Element {
-      constructor(public tile: Tile, public priority: number) {}
+      constructor(
+        public tile: Tile,
+        public distanceSoFar: number,
+        public potentialCarriedScore: number,
+        public numCarriedParcels: number
+      ) {}
       print() {
-        console.log(`${this.tile.x},${this.tile.y}: ${this.priority}`);
+        console.log(`${this.tile.x},${this.tile.y}: ${this.potentialCarriedScore}`);
       }
     }
     const frontier = new PriorityQueue<Element>(
       [],
       (a: Element, b: Element): number => {
-        return a.priority - b.priority;
+        return b.potentialCarriedScore - a.potentialCarriedScore;
       },
       false
     );
     const playerTile = this.beliefSet.getTile(startX, startY);
-    frontier.push(new Element(playerTile, 0));
-    const cameFrom = new Map<Tile, Movement>();
-    const costSoFar = new Map<Tile, number>();
-    cameFrom.set(playerTile, new Movement(null, Action.UNDEFINED));
-    costSoFar.set(playerTile, 0);
+    frontier.push(new Element(playerTile, 0, this.carriedScore, this.numCarriedParcels));
+    const cameFrom = new Map<Tile, Action[]>();
+    const potentialScoreSoFar = new Map<Tile, number>();
+    cameFrom.set(playerTile, []);
+    potentialScoreSoFar.set(playerTile, this.carriedScore);
+
+    const dacayParcelScoreOverDistance = 1;
 
     while (frontier.size() > 0) {
-      let currentElement = frontier.pop();
-      // currentElement.print();
-      const current = currentElement.tile;
-      if (current.isEqual(this.goal.tile)) break;
+      const currentElement = frontier.pop();
 
-      for (const neighbor of this.beliefSet.getNeighbors(current)) {
-        const newCost = costSoFar.get(current) + 1;
-        if (!costSoFar.has(neighbor) || newCost < costSoFar.get(neighbor)) {
-          costSoFar.set(neighbor, newCost);
-          const priority = newCost + ManhattanDistance(this.goal.tile, neighbor);
-          frontier.push(new Element(neighbor, priority));
-          cameFrom.set(neighbor, new Movement(current, computeAction(current, neighbor)));
+      // currentElement.print();
+      const currentTile = currentElement.tile;
+      const currentDistance = currentElement.distanceSoFar;
+      const currentPotentialCarriedScore = currentElement.potentialCarriedScore;
+      const currentNumCarriedParcels = currentElement.numCarriedParcels;
+      if (currentTile.isEqual(this.goal.tile)) break;
+
+      for (const neighbor of this.beliefSet.getNeighbors(currentTile)) {
+        const newDistance = currentDistance + 1;
+        const newPotentialScore =
+          neighbor.value -
+          newDistance * dacayParcelScoreOverDistance +
+          (currentPotentialCarriedScore - currentNumCarriedParcels * dacayParcelScoreOverDistance);
+        const newNumCarriedParcels = neighbor.value > 0 ? currentNumCarriedParcels + 1 : currentNumCarriedParcels;
+        if (!potentialScoreSoFar.has(neighbor) || newPotentialScore > potentialScoreSoFar.get(neighbor)) {
+          potentialScoreSoFar.set(neighbor, newPotentialScore);
+          frontier.push(new Element(neighbor, newDistance, newPotentialScore, newNumCarriedParcels));
+
+          const currentPlanActions = cameFrom.get(currentTile);
+          const newPlanActions = currentPlanActions.concat([computeAction(currentTile, neighbor)]);
+          cameFrom.set(neighbor, newPlanActions);
         }
       }
     }

@@ -42,7 +42,7 @@ class DeliverooMap {
     // visible parcels' values are saved in the map
     for (const parcelId of this.visibleParcelIds.values()) {
       const parcel = this.parcels.get(parcelId);
-      this.setTileValue(parcel.x, parcel.y, parcel.reward);
+      if (!parcel.carriedBy) this.setTileValue(parcel.x, parcel.y, parcel.reward);
     }
 
     // not visible parcels' values are not saved in the map
@@ -50,14 +50,14 @@ class DeliverooMap {
     for (const parcelId of this.notVisibleParcelIds.values()) {
       const parcel = this.parcels.get(parcelId);
       this.setTileValue(parcel.x, parcel.y, 0);
-      parcel.reward -= 1;
+      parcel.reward -= 1; // TODO: multiply per inferred decay, considering spawn time
       parcel.isVisible = false;
     }
 
     // delete parcels with reward equal to 0
     for (const parcelId of Array.from(this.parcels.keys())) {
       const parcel = this.parcels.get(parcelId);
-      if (parcel.reward == 0) {
+      if (parcel.reward === 0) {
         this.parcels.delete(parcelId);
         this.notVisibleParcelIds.delete(parcelId);
         this.visibleParcelIds.delete(parcelId);
@@ -168,11 +168,16 @@ class DeliverooMap {
     return this.map[roundX][roundY];
   }
 
-  getCarriedScore(agentId: string): number {
+  getCarriedScore(agentId: string) {
     let carriedScore = 0;
+    let numCarriedParcels = 0;
     for (const parcel of this.parcels.values())
-      if (parcel.isVisible && parcel.carriedBy === agentId) carriedScore += parcel.reward;
-    return carriedScore;
+      if (parcel.isVisible && parcel.carriedBy === agentId) {
+        carriedScore += parcel.reward;
+        numCarriedParcels += 1;
+      }
+
+    return [carriedScore, numCarriedParcels];
   }
 
   getParcels() {

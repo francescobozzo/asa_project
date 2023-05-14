@@ -10,10 +10,6 @@ enum Action {
   UNDEFINED = 'none',
 }
 
-class Movement {
-  constructor(public tile: Tile, public move: Action) {}
-}
-
 function ManhattanDistance(a: Tile, b: Tile) {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
@@ -44,7 +40,6 @@ function setUnion<T>(setA: Set<T>, setB: Set<T>): Set<T> {
 
 export {
   Action,
-  Movement,
   ManhattanDistance,
   computeAction,
   getRandomElementFromArray,

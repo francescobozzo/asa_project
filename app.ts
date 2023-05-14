@@ -1,9 +1,9 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import log from 'loglevel';
+import Config from './config.js';
 import IntentionPlanner from './src/agents/intention-planner.js';
 import DeliverooMap from './src/belief-sets/matrix-map.js';
 import { Action } from './src/belief-sets/utils.js';
-import Config from './config.js';
 
 switch (Config.LogLevel) {
   case 'DEBUG':
