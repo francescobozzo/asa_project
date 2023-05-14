@@ -30,4 +30,25 @@ function getRandomElementFromArray(array: any[]) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-export { Action, Movement, ManhattanDistance, computeAction, getRandomElementFromArray };
+function setDifference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
+  return new Set([...setA].filter((element) => !setB.has(element)));
+}
+
+function setIntersection<T>(setA: Set<T>, setB: Set<T>): Set<T> {
+  return new Set([...setA].filter((element) => setB.has(element)));
+}
+
+function setUnion<T>(setA: Set<T>, setB: Set<T>): Set<T> {
+  return new Set([...setA, ...setB]);
+}
+
+export {
+  Action,
+  Movement,
+  ManhattanDistance,
+  computeAction,
+  getRandomElementFromArray,
+  setDifference,
+  setIntersection,
+  setUnion,
+};

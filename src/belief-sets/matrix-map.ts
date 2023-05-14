@@ -1,13 +1,21 @@
-import { PriorityQueue } from 'js-sdsl';
 import log from 'loglevel';
 import { PDDLPlan, tileToPddl } from './pddl.js';
 import Tile from './tile.js';
-import { Action, ManhattanDistance, Movement, computeAction, getRandomElementFromArray } from './utils.js';
+import { getRandomElementFromArray, setDifference, setUnion } from './utils.js';
+
+import Agent from './agent.js';
+import Parcel from './parcel.js';
 
 class DeliverooMap {
   private map: Tile[][] = [];
   private validTiles: Tile[] = [];
   private deliveryStations: Tile[] = [];
+  private agents = new Map<string, Agent>();
+  private visibleAgentIds = new Set<string>();
+  private notVisibleAgentIds = new Set<string>();
+  private parcels = new Map<string, Parcel>();
+  private visibleParcelIds = new Set<string>();
+  private notVisibleParcelIds = new Set<string>();
 
   constructor(width: number, height: number, sensedTiles: any) {
     this.createMap(width, height, sensedTiles);
@@ -15,85 +23,105 @@ class DeliverooMap {
     this.print();
   }
 
-  private createMap(width: number, height: number, sensedTiles: any) {
-    for (let x = 0; x < width; x++) {
-      this.map.push([]);
-      for (let y = 0; y < height; y++) this.map[x].push(new Tile(x, y));
+  // PUBLIC SENSING
+
+  updateParcels(parcels: any[]) {
+    const sensedIds = new Set<string>(parcels.map((p) => p.id));
+    // the difference between old visible parcels and new visible parcels contains
+    // future not visible parcels
+    const newNotVisible = setDifference(this.visibleParcelIds, sensedIds);
+
+    this.visibleParcelIds = sensedIds;
+    // sensed parcels are removed form not visible parcels and the result is merged
+    // with new not visible parcels computed above
+    this.notVisibleParcelIds = setUnion(setDifference(this.notVisibleParcelIds, sensedIds), newNotVisible);
+
+    // updating the list of saved parcels
+    this.updateParcelsList(parcels);
+
+    // visible parcels' values are saved in the map
+    for (const parcelId of this.visibleParcelIds.values()) {
+      const parcel = this.parcels.get(parcelId);
+      this.setTileValue(parcel.x, parcel.y, parcel.reward);
     }
 
-    for (let i = 0; i < sensedTiles.length; i++) {
-      const [x, y] = [sensedTiles[i].x, sensedTiles[i].y];
-      const tile = this.map[x][y];
-
-      this.validTiles.push(tile);
-      if (sensedTiles[i].delivery) {
-        tile.isWalkable = true;
-        tile.isDelivery = true;
-
-        this.deliveryStations.push(tile);
-      } else tile.isWalkable = true;
+    // not visible parcels' values are not saved in the map
+    // not visible parcels are marked as notVisible
+    for (const parcelId of this.notVisibleParcelIds.values()) {
+      const parcel = this.parcels.get(parcelId);
+      this.setTileValue(parcel.x, parcel.y, 0);
+      parcel.reward -= 1;
+      parcel.isVisible = false;
     }
 
-    log.info('INFO : belief set created');
-  }
-
-  private getNeighbors(tile: Tile): Tile[] {
-    const neighbors: Tile[] = [];
-    const x = tile.x;
-    const y = tile.y;
-
-    if (x > 0 && this.map[x - 1][y].isWalkable && !this.map[x - 1][y].isOccupied) neighbors.push(this.map[x - 1][y]);
-    if (x < this.map.length - 1 && this.map[x + 1][y].isWalkable && !this.map[x + 1][y].isOccupied)
-      neighbors.push(this.map[x + 1][y]);
-    if (y > 0 && this.map[x][y - 1].isWalkable && !this.map[x][y - 1].isOccupied) neighbors.push(this.map[x][y - 1]);
-    if (y < this.map[x].length - 1 && this.map[x][y + 1].isWalkable && !this.map[x][y + 1].isOccupied)
-      neighbors.push(this.map[x][y + 1]);
-    return neighbors;
-  }
-
-  shortestPathFromTo(startX: number, startY: number, endX: number, endY: number): Map<Tile, Movement> {
-    class Element {
-      constructor(public tile: Tile, public priority: number) {}
-      print() {
-        console.log(`${this.tile.x},${this.tile.y}: ${this.priority}`);
+    // delete parcels with reward equal to 0
+    for (const parcelId of Array.from(this.parcels.keys())) {
+      const parcel = this.parcels.get(parcelId);
+      if (parcel.reward == 0) {
+        this.parcels.delete(parcelId);
+        this.notVisibleParcelIds.delete(parcelId);
+        this.visibleParcelIds.delete(parcelId);
       }
     }
-    const frontier = new PriorityQueue<Element>(
-      [],
-      (a: Element, b: Element): number => {
-        return a.priority - b.priority;
-      },
-      false
-    );
-    const goal = this.map[endX][endY];
-    frontier.push(new Element(this.map[startX][startY], 0));
-    const cameFrom = new Map<Tile, Movement>();
-    const costSoFar = new Map<Tile, number>();
-    cameFrom.set(this.map[startX][startY], new Movement(null, Action.UNDEFINED));
-    costSoFar.set(this.map[startX][startY], 0);
+    // this.print();
+  }
 
-    while (frontier.size() > 0) {
-      let currentElement = frontier.pop();
-      // currentElement.print();
-      const current = currentElement.tile;
-      if (current.isEqual(goal)) break;
+  updateAgents(agents: any[]) {
+    const sensedIds = new Set<string>(agents.map((p) => p.id));
+    // the difference between old visible agents and new visible agents contains
+    // future not visible agents
+    const newNotVisible = setDifference(this.visibleAgentIds, sensedIds);
 
-      for (const neighbor of this.getNeighbors(current)) {
-        const newCost = costSoFar.get(current) + 1;
-        if (!costSoFar.has(neighbor) || newCost < costSoFar.get(neighbor)) {
-          costSoFar.set(neighbor, newCost);
-          const priority = newCost + ManhattanDistance(goal, neighbor);
-          frontier.push(new Element(neighbor, priority));
-          cameFrom.set(neighbor, new Movement(current, computeAction(current, neighbor)));
-        }
+    this.visibleAgentIds = sensedIds;
+    // sensed agents are removed form not visible agents and the result is merged
+    // with new not visible agents computed above
+    this.notVisibleAgentIds = setUnion(setDifference(this.notVisibleAgentIds, sensedIds), newNotVisible);
+
+    // updating the list of saved agents
+    this.updateAgentsList(agents);
+
+    // visible agents' are marked in the map
+    for (const agentId of this.visibleAgentIds.values()) {
+      const agent = this.agents.get(agentId);
+      this.occupyTile(agent.x, agent.y, false);
+    }
+
+    // not visible agents are marked as notVisible
+    for (const agentId of this.notVisibleAgentIds.values()) {
+      const agent = this.agents.get(agentId);
+      this.freeTile(agent.x, agent.y);
+    }
+    // this.print();
+  }
+
+  // PRIVATE SENSING
+
+  private updateParcelsList(parcels: any[]) {
+    for (const parcel of parcels) {
+      if (!this.parcels.has(parcel.id)) {
+        this.parcels.set(parcel.id, new Parcel(parcel.id, parcel.x, parcel.y, parcel.carriedBy, parcel.reward, true));
+        this.setTileValue(parcel.x, parcel.y, parcel.reward);
+      } else {
+        const savedParcel = this.parcels.get(parcel.id);
+        this.setTileValue(savedParcel.x, savedParcel.y, 0);
+        savedParcel.update(parcel.x, parcel.y, parcel.carriedBy, parcel.reward, true);
       }
     }
-    return cameFrom;
   }
 
-  private roundTileCoordinates(x: number, y: number) {
-    return { roundX: Math.round(x), roundY: Math.round(y) };
+  private updateAgentsList(agents: any[]) {
+    for (const agent of agents) {
+      if (!this.agents.has(agent.id))
+        this.agents.set(agent.id, new Agent(agent.id, agent.name, agent.x, agent.y, agent.score));
+      else {
+        const savedAgent = this.agents.get(agent.id);
+        this.freeTile(savedAgent.x, savedAgent.y);
+        savedAgent.update(agent.x, agent.y, agent.score, true);
+      }
+    }
   }
+
+  // PUBLIC ON MAP ACTION
 
   occupyTile(x: number, y: number, isMainPlayer: boolean) {
     const { roundX, roundY } = this.roundTileCoordinates(x, y);
@@ -127,10 +155,85 @@ class DeliverooMap {
     log.debug(`DEBUG: removeTileValue: ${roundX},${roundY} ${tile.value}`);
   }
 
+  setTileValue(x: number, y: number, value: number) {
+    const { roundX, roundY } = this.roundTileCoordinates(x, y);
+    const tile = this.map[roundX][roundY];
+    tile.value = value;
+    tile.hasParcel = tile.value > 0 ? true : false;
+    log.debug(`DEBUG: setTileValue: ${roundX},${roundY} ${tile.value}`);
+  }
+
   getTile(x: number, y: number): Tile {
     const { roundX, roundY } = this.roundTileCoordinates(x, y);
     return this.map[roundX][roundY];
   }
+
+  getCarriedScore(agentId: string): number {
+    let carriedScore = 0;
+    for (const parcel of this.parcels.values())
+      if (parcel.isVisible && parcel.carriedBy === agentId) carriedScore += parcel.reward;
+    return carriedScore;
+  }
+
+  getParcels() {
+    return this.parcels;
+  }
+
+  getNeighbors(tile: Tile): Tile[] {
+    const neighbors: Tile[] = [];
+    const x = tile.x;
+    const y = tile.y;
+
+    if (x > 0 && this.map[x - 1][y].isWalkable && !this.map[x - 1][y].isOccupied) neighbors.push(this.map[x - 1][y]);
+    if (x < this.map.length - 1 && this.map[x + 1][y].isWalkable && !this.map[x + 1][y].isOccupied)
+      neighbors.push(this.map[x + 1][y]);
+    if (y > 0 && this.map[x][y - 1].isWalkable && !this.map[x][y - 1].isOccupied) neighbors.push(this.map[x][y - 1]);
+    if (y < this.map[x].length - 1 && this.map[x][y + 1].isWalkable && !this.map[x][y + 1].isOccupied)
+      neighbors.push(this.map[x][y + 1]);
+    return neighbors;
+  }
+
+  private roundTileCoordinates(x: number, y: number) {
+    return { roundX: Math.round(x), roundY: Math.round(y) };
+  }
+
+  getRandomNeighbor(x: number, y: number): Tile {
+    return getRandomElementFromArray(this.getNeighbors(this.getTile(x, y)));
+  }
+
+  getRandomValidTile(): Tile {
+    return getRandomElementFromArray(this.validTiles);
+  }
+
+  getRandomDeliveryStation(): Tile {
+    return getRandomElementFromArray(this.deliveryStations);
+  }
+
+  // PRIVATE INNER FUNCTIONS
+
+  private createMap(width: number, height: number, sensedTiles: any) {
+    for (let x = 0; x < width; x++) {
+      this.map.push([]);
+      for (let y = 0; y < height; y++) this.map[x].push(new Tile(x, y));
+    }
+
+    for (let i = 0; i < sensedTiles.length; i++) {
+      const [x, y] = [sensedTiles[i].x, sensedTiles[i].y];
+      const tile = this.map[x][y];
+
+      this.validTiles.push(tile);
+      if (sensedTiles[i].delivery) {
+        tile.isWalkable = true;
+        tile.isDelivery = true;
+
+        this.deliveryStations.push(tile);
+      } else tile.isWalkable = true;
+    }
+
+    log.info('INFO : belief set created');
+  }
+
+  // PUBLIC EXPORTER
 
   toPddlDomain(): PDDLPlan {
     const objects: string[] = [];
@@ -164,6 +267,9 @@ class DeliverooMap {
       returnValue += '│';
       for (let j = 0; j < this.map[i].length; j++) {
         const tileValue = this.map[i][j].toString();
+        if (tileValue.length > 2) {
+          console.log(tileValue);
+        }
         returnValue += `${' '.repeat(2 - tileValue.length)} ${tileValue}`;
       }
       returnValue += '│\n';
@@ -172,6 +278,8 @@ class DeliverooMap {
 
     return returnValue;
   }
+
+  // PUBLIC PRINTERS
 
   print() {
     console.log(this.toString());
@@ -192,16 +300,22 @@ class DeliverooMap {
     console.log(returnValue);
   }
 
-  getRandomNeighbor(x: number, y: number): Tile {
-    return getRandomElementFromArray(this.getNeighbors(this.getTile(x, y)));
-  }
+  printAgents() {
+    let returnValue = '';
+    returnValue += `┌${'─'.repeat(this.map.length * 3)}┐\n`;
+    for (let i = 0; i < this.map.length; i++) {
+      returnValue += '│';
+      for (let j = 0; j < this.map[i].length; j++) {
+        if (this.map[i][j].isMainPlayer) returnValue += `  I`;
+        else if (this.map[i][j].isOccupied) returnValue += `  A`;
+        else if (this.map[i][j].isWalkable) returnValue += `  X`;
+        else returnValue += `   `;
+      }
+      returnValue += '│\n';
+    }
+    returnValue += `└${'─'.repeat(this.map.length * 3)}┘\n`;
 
-  getRandomValidTile(): Tile {
-    return getRandomElementFromArray(this.validTiles);
-  }
-
-  getRandomDeliveryStation(): Tile {
-    return getRandomElementFromArray(this.deliveryStations);
+    console.log(returnValue);
   }
 }
 

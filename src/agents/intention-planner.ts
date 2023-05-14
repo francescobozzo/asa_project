@@ -1,17 +1,8 @@
 import log from 'loglevel';
-import Agent from '../belief-sets/agent.js';
+import { PriorityQueue } from 'js-sdsl';
 import DeliverooMap from '../belief-sets/matrix-map.js';
-import Parcel from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
-import { Action } from '../belief-sets/utils.js';
-
-function setDifference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
-  return new Set([...setA].filter((element) => !setB.has(element)));
-}
-
-function randomElementFromArray(array) {
-  return array[Math.floor(Math.random() * array.length)];
-}
+import { Action, ManhattanDistance, Movement, computeAction } from '../belief-sets/utils.js';
 
 enum GoalType {
   PARCEL = 'parcel',
@@ -35,91 +26,22 @@ class IntentionPlanner {
   private score: number;
   private carriedScore: number = 0;
   public beliefSet: DeliverooMap;
-  private agents = new Map<string, Agent>();
-  private agentIds = new Set<string>();
-  private parcels = new Map<string, Parcel>();
-  private parcelIds = new Set<string>();
   private goal: Goal;
 
   constructor() {}
 
+  // PUBLIC SENSING
+
   agentsSensingHandler(agents: any) {
     log.debug(`DEBUG: main player perceived ${agents.length} agents`);
-    let currentAgentIds = new Set<string>();
-    for (const agent of agents) {
-      currentAgentIds.add(agent.id);
-      this.agentIds.add(agent.id);
-      if (this.agents.has(agent.id)) {
-        let agentToUpdate = this.agents.get(agent.id);
-        this.beliefSet.freeTile(agentToUpdate.x, agentToUpdate.y);
-        this.beliefSet.occupyTile(agent.x, agent.y, false);
-        agentToUpdate.update(agent.x, agent.y, agent.score, true);
-      } else this.agents.set(agent.id, new Agent(agent.id, agent.name, agent.x, agent.y, agent.score));
-    }
-    for (const agentId of setDifference(this.agentIds, currentAgentIds)) this.agents.get(agentId).isVisible = false;
-    for (const agent of this.agents.values())
-      if (agent.isVisible) this.beliefSet.occupyTile(agent.x, agent.y, false);
-      else this.beliefSet.freeTile(agent.x, agent.y);
+    this.beliefSet.updateAgents(agents);
   }
 
   parcelSensingHandler(parcels: any) {
     log.debug(`DEBUG: main player perceived ${parcels.length} parcels`);
-    this.carriedScore = 0;
-    let currentParcelIds = new Set<string>();
-    for (const parcel of parcels) {
-      if (parcel.carriedBy === this.id) this.carriedScore += parcel.reward;
-      currentParcelIds.add(parcel.id);
-      this.parcelIds.add(parcel.id);
-      if (this.parcels.has(parcel.id)) {
-        let parcelToUpdate = this.parcels.get(parcel.id);
-        this.beliefSet.removeTileValue(parcelToUpdate.x, parcelToUpdate.y, parcelToUpdate.reward);
-        parcelToUpdate.update(parcel.x, parcel.y, parcel.carriedBy, parcel.reward, true);
-        this.beliefSet.addTileValue(parcelToUpdate.x, parcelToUpdate.y, parcelToUpdate.reward);
-      } else this.parcels.set(parcel.id, new Parcel(parcel.id, parcel.x, parcel.y, parcel.carriedBy, parcel.reward));
-    }
-    for (const parcelId of setDifference(this.parcelIds, currentParcelIds)) {
-      let parcel = this.parcels.get(parcelId);
-      if (parcel.reward === 1) {
-        this.parcels.delete(parcel.id);
-        this.parcelIds.delete(parcelId);
-        this.beliefSet.freeTile(parcel.x, parcel.y);
-      } else {
-        parcel.reward -= 1;
-        parcel.isVisible = false;
-      }
-      this.beliefSet.removeTileValue(parcel.x, parcel.y, parcel.reward);
-    }
-
+    this.beliefSet.updateParcels(parcels);
+    this.computeCarriedScore();
     this.setGoal();
-  }
-
-  private setGoal() {
-    if (this.carriedScore > 0 && (!this.goal || this.goal.type !== GoalType.DELIVERY_STATION)) {
-      this.goal = new Goal(this.beliefSet.getRandomDeliveryStation(), GoalType.DELIVERY_STATION, 'delivery');
-      log.info('INFO : New Goal: delivering parcel(s)\n\t', this.goal.toString());
-    } else if (!this.goal || this.goal.type === GoalType.TILE) {
-      for (const [parcelId, parcel] of this.parcels)
-        if (parcel.carriedBy === null && parcel.isVisible) {
-          this.goal = new Goal(this.beliefSet.getTile(parcel.x, parcel.y), GoalType.PARCEL, parcelId);
-          log.info('INFO : New Goal: tracking visible parcel\n\t', this.goal.toString());
-          break;
-        }
-
-      if (!this.goal) {
-        this.goal = new Goal(this.beliefSet.getRandomValidTile(), GoalType.TILE, 'exploration');
-        log.info(
-          'INFO : New Goal: the agent is exploring randomly the map since no parcel is sensed\n\t',
-          this.goal.toString()
-        );
-      }
-    } else if (
-      !this.goal &&
-      this.goal.type === GoalType.PARCEL &&
-      (!this.parcels.get(this.goal.id) || this.parcels.get(this.goal.id).carriedBy === this.id)
-    ) {
-      this.goal = null;
-      log.info('INFO : New Goal: resetting goal to null since tracked parcel was picked by another agent');
-    }
   }
 
   updateMe(id: string, name: string, x: number, y: number, score: number) {
@@ -133,23 +55,21 @@ class IntentionPlanner {
     this.beliefSet.occupyTile(this.x, this.y, true);
   }
 
-  private isGoalReached(): boolean {
-    return this.x === this.goal.tile.x && this.y === this.goal.tile.y;
-  }
-
+  // PUBLIC ACTIONS
   getNextAction(): Action {
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
       if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) {
         this.goal = null;
         return Action.PICKUP;
       } else if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_STATION) {
+        this.carriedScore = 0;
         this.goal = null;
         return Action.PUTDOWN;
       } else if (this.isGoalReached() && this.goal.type === GoalType.TILE) {
         this.goal = null;
         return Action.UNDEFINED;
       }
-      const cameFrom = this.beliefSet.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
+      const cameFrom = this.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
 
       let move = Action.UNDEFINED;
       const states = [];
@@ -173,6 +93,99 @@ class IntentionPlanner {
       return move;
     }
     return Action.UNDEFINED;
+  }
+
+  // PRIVATE INNER FUNCTIONS
+  private computeCarriedScore() {
+    this.carriedScore = this.beliefSet.getCarriedScore(this.id);
+  }
+
+  private isGoalDeliveryStationFree() {
+    return this.goal && this.goal.type === GoalType.DELIVERY_STATION && !this.goal.tile.isOccupied;
+  }
+
+  private isGoalADeliveryStation() {
+    return this.goal && this.goal.type === GoalType.DELIVERY_STATION;
+  }
+
+  private setGoal() {
+    const parcels = this.beliefSet.getParcels();
+    // the player has at least one parcel
+    if (this.carriedScore > 0 && !this.isGoalADeliveryStation()) {
+      this.goal = new Goal(this.beliefSet.getRandomDeliveryStation(), GoalType.DELIVERY_STATION, 'delivery');
+      log.info(
+        'INFO : New Goal: delivering parcel(s)\n\t',
+        this.goal.toString(),
+        `with ${this.carriedScore} of potential value`
+      );
+    } else if (!this.goal || (this.goal && this.goal.type === GoalType.TILE)) {
+      // no goal or random walk
+      for (const parcel of parcels.values())
+        if (parcel.carriedBy === null && parcel.isVisible) {
+          this.goal = new Goal(this.beliefSet.getTile(parcel.x, parcel.y), GoalType.PARCEL, parcel.id);
+          log.info('INFO : New Goal: tracking visible parcel\n\t', this.goal.toString());
+          break;
+        }
+
+      // no goal and no visible parcels
+      if (!this.goal) {
+        this.goal = new Goal(this.beliefSet.getRandomValidTile(), GoalType.TILE, 'exploration');
+        log.info(
+          'INFO : New Goal: the agent is exploring randomly the map since no parcel is sensed\n\t',
+          this.goal.toString()
+        );
+      }
+    } else if (
+      this.goal.type === GoalType.PARCEL &&
+      (!parcels.get(this.goal.id) || parcels.get(this.goal.id).carriedBy === this.id || this.goal.tile.isOccupied)
+    ) {
+      this.goal = null;
+      log.info('INFO : New Goal: resetting goal to null since tracked parcel was picked by another agent');
+    }
+  }
+
+  private isGoalReached(): boolean {
+    return this.x === this.goal.tile.x && this.y === this.goal.tile.y;
+  }
+
+  private shortestPathFromTo(startX: number, startY: number, endX: number, endY: number): Map<Tile, Movement> {
+    class Element {
+      constructor(public tile: Tile, public priority: number) {}
+      print() {
+        console.log(`${this.tile.x},${this.tile.y}: ${this.priority}`);
+      }
+    }
+    const frontier = new PriorityQueue<Element>(
+      [],
+      (a: Element, b: Element): number => {
+        return a.priority - b.priority;
+      },
+      false
+    );
+    const playerTile = this.beliefSet.getTile(startX, startY);
+    frontier.push(new Element(playerTile, 0));
+    const cameFrom = new Map<Tile, Movement>();
+    const costSoFar = new Map<Tile, number>();
+    cameFrom.set(playerTile, new Movement(null, Action.UNDEFINED));
+    costSoFar.set(playerTile, 0);
+
+    while (frontier.size() > 0) {
+      let currentElement = frontier.pop();
+      // currentElement.print();
+      const current = currentElement.tile;
+      if (current.isEqual(this.goal.tile)) break;
+
+      for (const neighbor of this.beliefSet.getNeighbors(current)) {
+        const newCost = costSoFar.get(current) + 1;
+        if (!costSoFar.has(neighbor) || newCost < costSoFar.get(neighbor)) {
+          costSoFar.set(neighbor, newCost);
+          const priority = newCost + ManhattanDistance(this.goal.tile, neighbor);
+          frontier.push(new Element(neighbor, priority));
+          cameFrom.set(neighbor, new Movement(current, computeAction(current, neighbor)));
+        }
+      }
+    }
+    return cameFrom;
   }
 }
 

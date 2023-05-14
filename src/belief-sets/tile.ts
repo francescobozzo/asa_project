@@ -16,7 +16,7 @@ class Tile {
     if (this.isMainPlayer) return 'I';
     else if (this.isOccupied) return 'A';
     else if (this.isDelivery) return 'D';
-    else if (this.hasParcel) return 'P';
+    // else if (this.hasParcel) return 'P';
     else if (!this.isWalkable) return ' ';
     else return `${this.value}`;
   }

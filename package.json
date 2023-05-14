@@ -16,6 +16,7 @@
     "@types/node": "^20.1.1",
     "@unitn-asa/deliveroo-js-client": "^0.0.27",
     "@unitn-asa/pddl-client": "^0.0.29",
+    "dotenv": "^16.0.3",
     "js-sdsl": "^4.4.0",
     "loglevel": "^1.8.1",
     "p-queue-ts": "^1.1.0"
