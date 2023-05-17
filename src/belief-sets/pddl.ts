@@ -1,4 +1,4 @@
-import { onlineSolver, PddlAction, PddlProblem } from '@unitn-asa/pddl-client';
+import { PddlAction, PddlDomain, PddlProblem, onlineSolver } from '@unitn-asa/pddl-client';
 import fs from 'fs';
 import Tile from './tile.js';
 
@@ -33,11 +33,7 @@ export async function getPlan(objects: string, predicates: string) {
     async (l) => console.log('exec move', l)
   );
 
-  // FIX: waiting for fix
-  // https://github.com/unitn-ASA/Deliveroo.js/issues/1
-  // const domain = new PddlDomain('deliveroo', moveAction);
-
-  const domain = await readFile('./domain_deliveroo.pddl');
+  const domain = new PddlDomain('deliveroo', moveAction);
   const problem = new PddlProblem('deliveroo-problem-1', objects, predicates, 'and (at y8_x6)');
 
   return await onlineSolver(domain, problem.toPddlString());
