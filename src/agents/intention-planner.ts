@@ -2,7 +2,7 @@ import { PriorityQueue } from 'js-sdsl';
 import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
 import Tile from '../belief-sets/tile.js';
-import { Action, Plan, computeAction } from '../belief-sets/utils.js';
+import { Action, Plan, arrayAverage, computeAction } from '../belief-sets/utils.js';
 
 enum GoalType {
   PARCEL = 'parcel',
@@ -28,8 +28,13 @@ class IntentionPlanner {
   private numCarriedParcels: number = 0;
   public beliefSet: DeliverooMap;
   private goal: Goal;
+  private modifiedAt: Date[] = [];
+  private mainPlayerSpeedLR: number;
+  private mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
 
-  constructor() {}
+  constructor(mainPlayerSpeedLR: number) {
+    this.mainPlayerSpeedLR = mainPlayerSpeedLR;
+  }
 
   // PUBLIC SENSING
 
@@ -51,10 +56,15 @@ class IntentionPlanner {
     if (this.x !== undefined && this.y !== undefined) this.beliefSet.freeTile(this.x, this.y);
     this.id = id;
     this.name = name;
+    if (Number.isInteger(x) && Number.isInteger(y) && (this.x != x || this.y != y)) {
+      if (this.modifiedAt.length > 90) this.modifiedAt.pop();
+      this.modifiedAt.push(new Date());
+    }
     this.x = x;
     this.y = y;
     this.score = score;
     this.beliefSet.occupyTile(this.x, this.y, true);
+    this.updateMainPlayerSpeedEstimation();
   }
 
   // PUBLIC ACTIONS
@@ -88,6 +98,25 @@ class IntentionPlanner {
     const [carriedScore, numCarriedParcels] = this.beliefSet.getCarriedScore(this.id);
     this.carriedScore = carriedScore;
     this.numCarriedParcels = numCarriedParcels;
+  }
+
+  private updateMainPlayerSpeedEstimation() {
+    const deltas = [];
+    if (this.modifiedAt.length > 1) {
+      for (let i = 1; i < this.modifiedAt.length; i++) {
+        deltas.push((this.modifiedAt[i].getTime() - this.modifiedAt[i - 1].getTime()) / 1000);
+      }
+    }
+
+    if (deltas.length > 0) {
+      const oldMainPlayerSpeedEstimation = this.mainPlayerSpeedEstimation;
+      const currentContribution = this.mainPlayerSpeedEstimation * (1 - this.mainPlayerSpeedLR);
+      const newContribution = arrayAverage(deltas) * this.mainPlayerSpeedLR;
+      this.mainPlayerSpeedEstimation = currentContribution + newContribution;
+      log.info(
+        `DEBUG: main player estimation updated: ${oldMainPlayerSpeedEstimation} -> ${this.mainPlayerSpeedEstimation}`
+      );
+    }
   }
 
   private isGoalDeliveryStationFree() {

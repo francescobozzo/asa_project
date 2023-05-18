@@ -75,9 +75,10 @@ class DeliverooMap {
       deltas = deltas.concat(this.parcels.get(parcelId).getParcelDecayEstimation());
     if (deltas.length > 0) {
       const oldParcelsDecayEstimation = this.parcelsDecayEstimation;
-      console.log(this.parcelDecayLR, deltas, arrayAverage(deltas));
-      this.parcelsDecayEstimation += this.parcelDecayLR * (arrayAverage(deltas) - this.parcelsDecayEstimation);
-      log.debug(
+      const currentContribution = this.parcelsDecayEstimation * (1 - this.parcelDecayLR);
+      const newContribution = arrayAverage(deltas) * this.parcelDecayLR;
+      this.parcelsDecayEstimation = currentContribution + newContribution;
+      log.info(
         `DEBUG: parcel decay estimation upated: ${oldParcelsDecayEstimation} -> ${this.parcelsDecayEstimation} `
       );
     }

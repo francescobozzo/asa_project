@@ -39,8 +39,12 @@ const client = new DeliverooApi(
 let parcelDecayLR: number;
 if (typeof Config.ParcelDecayLearningRate === 'string') parcelDecayLR = parseFloat(Config.ParcelDecayLearningRate);
 else parcelDecayLR = Config.ParcelDecayLearningRate;
+let mainPlayerSpeedLR: number;
+if (typeof Config.MainPlayerSpeedLearningRate === 'string')
+  mainPlayerSpeedLR = parseFloat(Config.MainPlayerSpeedLearningRate);
+else mainPlayerSpeedLR = Config.MainPlayerSpeedLearningRate;
 
-const agent = new IntentionPlanner();
+const agent = new IntentionPlanner(mainPlayerSpeedLR);
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles, parcelDecayLR);
 });
