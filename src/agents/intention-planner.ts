@@ -113,7 +113,7 @@ class IntentionPlanner {
       const currentContribution = this.mainPlayerSpeedEstimation * (1 - this.mainPlayerSpeedLR);
       const newContribution = arrayAverage(deltas) * this.mainPlayerSpeedLR;
       this.mainPlayerSpeedEstimation = currentContribution + newContribution;
-      log.debug(
+      log.warn(
         `DEBUG: main player estimation updated: ${oldMainPlayerSpeedEstimation} -> ${this.mainPlayerSpeedEstimation}`
       );
     }
@@ -197,7 +197,7 @@ class IntentionPlanner {
         public tile: Tile,
         public distanceSoFar: number,
         public potentialCarriedScore: number,
-        public numCarriedParcels: number
+        public carriedParcelTiles: Set<Tile>
       ) {}
       print() {
         console.log(`${this.tile.x},${this.tile.y}: ${this.potentialCarriedScore}`);
@@ -211,13 +211,11 @@ class IntentionPlanner {
       false
     );
     const playerTile = this.beliefSet.getTile(startX, startY);
-    frontier.push(new Element(playerTile, 0, this.carriedScore, this.numCarriedParcels));
+    frontier.push(new Element(playerTile, 0, this.carriedScore, new Set()));
     const cameFrom = new Map<Tile, Plan>();
     const potentialScoreSoFar = new Map<Tile, number>();
     cameFrom.set(playerTile, new Plan([], 0));
     potentialScoreSoFar.set(playerTile, this.carriedScore);
-
-    const dacayParcelScoreOverDistance = 1;
 
     while (frontier.size() > 0) {
       const currentElement = frontier.pop();
@@ -226,21 +224,28 @@ class IntentionPlanner {
       const currentTile = currentElement.tile;
       const currentDistance = currentElement.distanceSoFar;
       const currentPotentialCarriedScore = currentElement.potentialCarriedScore;
-      const currentNumCarriedParcels = currentElement.numCarriedParcels;
+      const currentCarriedParcelTiles = currentElement.carriedParcelTiles;
       if (currentTile.isEqual(this.beliefSet.getTile(endX, endY))) break;
 
       for (const neighbor of this.beliefSet.getNeighbors(currentTile)) {
         const newDistance = currentDistance + 1;
-        const neighborEstimatedValue = this.computeParcelValueEstimation(neighbor.value, newDistance);
+        const newCarriedParcelTiles: Set<Tile> = new Set(
+          JSON.parse(JSON.stringify(Array.from(currentCarriedParcelTiles)))
+        );
+        let neighborEstimatedValue = 0;
+        if (!newCarriedParcelTiles.has(neighbor) && neighbor.hasParcel) {
+          neighborEstimatedValue = this.computeParcelValueEstimation(neighbor.value, newDistance);
+          newCarriedParcelTiles.add(neighbor);
+        }
         const potentialCarriedScoreEstimatedValue = this.computePotentialCarriedScoreEstimation(
           currentPotentialCarriedScore,
-          currentNumCarriedParcels
+          currentCarriedParcelTiles.size
         );
         const newPotentialScore = neighborEstimatedValue + potentialCarriedScoreEstimatedValue;
-        const newNumCarriedParcels = neighbor.value > 0 ? currentNumCarriedParcels + 1 : currentNumCarriedParcels;
+
         if (!potentialScoreSoFar.has(neighbor) || newPotentialScore > potentialScoreSoFar.get(neighbor)) {
           potentialScoreSoFar.set(neighbor, newPotentialScore);
-          frontier.push(new Element(neighbor, newDistance, newPotentialScore, newNumCarriedParcels));
+          frontier.push(new Element(neighbor, newDistance, newPotentialScore, newCarriedParcelTiles));
 
           const currentPlanActions = cameFrom.get(currentTile).actions;
           const newPlanActions = currentPlanActions.concat([computeAction(currentTile, neighbor)]);
