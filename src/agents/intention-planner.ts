@@ -113,7 +113,7 @@ class IntentionPlanner {
       const currentContribution = this.mainPlayerSpeedEstimation * (1 - this.mainPlayerSpeedLR);
       const newContribution = arrayAverage(deltas) * this.mainPlayerSpeedLR;
       this.mainPlayerSpeedEstimation = currentContribution + newContribution;
-      log.info(
+      log.debug(
         `DEBUG: main player estimation updated: ${oldMainPlayerSpeedEstimation} -> ${this.mainPlayerSpeedEstimation}`
       );
     }
@@ -231,10 +231,12 @@ class IntentionPlanner {
 
       for (const neighbor of this.beliefSet.getNeighbors(currentTile)) {
         const newDistance = currentDistance + 1;
-        const newPotentialScore =
-          neighbor.value -
-          newDistance * dacayParcelScoreOverDistance +
-          (currentPotentialCarriedScore - currentNumCarriedParcels * dacayParcelScoreOverDistance);
+        const neighborEstimatedValue = this.computeParcelValueEstimation(neighbor.value, newDistance);
+        const potentialCarriedScoreEstimatedValue = this.computePotentialCarriedScoreEstimation(
+          currentPotentialCarriedScore,
+          currentNumCarriedParcels
+        );
+        const newPotentialScore = neighborEstimatedValue + potentialCarriedScoreEstimatedValue;
         const newNumCarriedParcels = neighbor.value > 0 ? currentNumCarriedParcels + 1 : currentNumCarriedParcels;
         if (!potentialScoreSoFar.has(neighbor) || newPotentialScore > potentialScoreSoFar.get(neighbor)) {
           potentialScoreSoFar.set(neighbor, newPotentialScore);
@@ -247,6 +249,19 @@ class IntentionPlanner {
       }
     }
     return cameFrom;
+  }
+
+  private computeParcelValueEstimation(parcelValue: number, distance: number) {
+    return parcelValue - this.computeParcelLossEstimation(distance);
+  }
+
+  private computePotentialCarriedScoreEstimation(parcelsValue: number, parcelsNumber: number) {
+    return parcelsValue - this.computeParcelLossEstimation(1) * parcelsNumber;
+  }
+
+  private computeParcelLossEstimation(distance: number) {
+    const playerSpeedParcelCoefficient = this.mainPlayerSpeedEstimation / this.beliefSet.getParcelsDecayEstimation();
+    return distance * playerSpeedParcelCoefficient;
   }
 }
 

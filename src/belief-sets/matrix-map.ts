@@ -78,13 +78,13 @@ class DeliverooMap {
       const currentContribution = this.parcelsDecayEstimation * (1 - this.parcelDecayLR);
       const newContribution = arrayAverage(deltas) * this.parcelDecayLR;
       this.parcelsDecayEstimation = currentContribution + newContribution;
-      log.info(
+      log.debug(
         `DEBUG: parcel decay estimation upated: ${oldParcelsDecayEstimation} -> ${this.parcelsDecayEstimation} `
       );
     }
   }
   getParcelsDecayEstimation() {
-    // return arrayAverage(deltas);
+    return this.parcelsDecayEstimation;
   }
 
   updateAgents(agents: any[]) {
