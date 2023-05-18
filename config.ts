@@ -9,4 +9,5 @@ export default {
   SenseAgents: process.env.SENSE_AGENTS ? process.env.SENSE_YOU === 'true' : true,
   SenseParcels: process.env.SENSE_PARCELS ? process.env.SENSE_PARCELS === 'true' : true,
   TakeActions: process.env.TAKE_ACTIONS ? process.env.TAKE_ACTIONS === 'true' : true,
+  ParcelDecayLearningRate: process.env.PARCEL_DECAY_LEARNING_RATE ? process.env.PARCEL_DECAY_LEARNING_RATE : 0.1,
 };

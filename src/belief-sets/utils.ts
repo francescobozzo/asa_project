@@ -42,12 +42,17 @@ function setUnion<T>(setA: Set<T>, setB: Set<T>): Set<T> {
   return new Set([...setA, ...setB]);
 }
 
+function arrayAverage(array: number[]): number {
+  return array.reduce((a, b) => a + b) / array.length;
+}
+
 export {
   Action,
   Plan,
   ManhattanDistance,
   computeAction,
   getRandomElementFromArray,
+  arrayAverage,
   setDifference,
   setIntersection,
   setUnion,

@@ -35,9 +35,14 @@ const client = new DeliverooApi(
   `http://localhost:${Config.Port}`,
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNiNzNlOGUyYjllIiwibmFtZSI6InRlc3QxIiwiaWF0IjoxNjgwNjQyMDIwfQ.H1EOanRFuikvCMJ7RZfQE0P6hJaDVWCaA20yCIL2pz8'
 );
+
+let parcelDecayLR: number;
+if (typeof Config.ParcelDecayLearningRate === 'string') parcelDecayLR = parseFloat(Config.ParcelDecayLearningRate);
+else parcelDecayLR = Config.ParcelDecayLearningRate;
+
 const agent = new IntentionPlanner();
 client.socket.on('map', (width: number, height: number, tiles: any) => {
-  agent.beliefSet = new DeliverooMap(width, height, tiles);
+  agent.beliefSet = new DeliverooMap(width, height, tiles, parcelDecayLR);
 });
 
 if (Config.SenseYou)

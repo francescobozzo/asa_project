@@ -41,6 +41,7 @@ class IntentionPlanner {
   parcelSensingHandler(parcels: any) {
     log.debug(`DEBUG: main player perceived ${parcels.length} parcels`);
     this.beliefSet.updateParcels(parcels);
+    this.beliefSet.updateParcelsDecayEstimation();
     this.computeCarriedScore();
     this.setGoal();
   }

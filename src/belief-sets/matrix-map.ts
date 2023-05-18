@@ -1,7 +1,7 @@
 import log from 'loglevel';
 import { PDDLPlan, tileToPddl } from './pddl.js';
 import Tile from './tile.js';
-import { getRandomElementFromArray, setDifference, setUnion } from './utils.js';
+import { getRandomElementFromArray, setDifference, setUnion, arrayAverage } from './utils.js';
 
 import Agent from './agent.js';
 import Parcel from './parcel.js';
@@ -16,11 +16,14 @@ class DeliverooMap {
   private parcels = new Map<string, Parcel>();
   private visibleParcelIds = new Set<string>();
   private notVisibleParcelIds = new Set<string>();
+  private parcelDecayLR: number;
+  private parcelsDecayEstimation: number = 1;
 
-  constructor(width: number, height: number, sensedTiles: any) {
+  constructor(width: number, height: number, sensedTiles: any, parcelDecayLR: number) {
     this.createMap(width, height, sensedTiles);
     this.printWalkable();
     this.print();
+    this.parcelDecayLR = parcelDecayLR;
   }
 
   // PUBLIC SENSING
@@ -64,6 +67,23 @@ class DeliverooMap {
       }
     }
     // this.print();
+  }
+
+  updateParcelsDecayEstimation() {
+    let deltas = [];
+    for (const parcelId of this.visibleParcelIds)
+      deltas = deltas.concat(this.parcels.get(parcelId).getParcelDecayEstimation());
+    if (deltas.length > 0) {
+      const oldParcelsDecayEstimation = this.parcelsDecayEstimation;
+      console.log(this.parcelDecayLR, deltas, arrayAverage(deltas));
+      this.parcelsDecayEstimation += this.parcelDecayLR * (arrayAverage(deltas) - this.parcelsDecayEstimation);
+      log.debug(
+        `DEBUG: parcel decay estimation upated: ${oldParcelsDecayEstimation} -> ${this.parcelsDecayEstimation} `
+      );
+    }
+  }
+  getParcelsDecayEstimation() {
+    // return arrayAverage(deltas);
   }
 
   updateAgents(agents: any[]) {
