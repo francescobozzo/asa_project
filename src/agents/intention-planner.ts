@@ -2,7 +2,7 @@ import { PriorityQueue } from 'js-sdsl';
 import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
 import Tile from '../belief-sets/tile.js';
-import { Action, computeAction } from '../belief-sets/utils.js';
+import { Action, Plan, computeAction } from '../belief-sets/utils.js';
 
 enum GoalType {
   PARCEL = 'parcel',
@@ -77,7 +77,7 @@ class IntentionPlanner {
       }
       const cameFrom = this.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
 
-      return cameFrom.has(this.goal.tile) ? cameFrom.get(this.goal.tile)[0] : Action.UNDEFINED;
+      return cameFrom.has(this.goal.tile) ? cameFrom.get(this.goal.tile).actions[0] : Action.UNDEFINED;
     }
     return Action.UNDEFINED;
   }
@@ -101,20 +101,44 @@ class IntentionPlanner {
     const parcels = this.beliefSet.getParcels();
     // the player has at least one parcel
     if (this.carriedScore > 0 && !this.isGoalADeliveryStation()) {
-      this.goal = new Goal(this.beliefSet.getRandomDeliveryStation(), GoalType.DELIVERY_STATION, 'delivery');
-      log.info(
-        'INFO : New Goal: delivering parcel(s)\n\t',
-        this.goal.toString(),
-        `with ${this.carriedScore} of potential value and ${this.numCarriedParcels} parcels`
-      );
+      let maxPotentialScore = 0;
+      let bestDeliveryStation = null;
+      for (const deliveryStation of this.beliefSet.deliveryStations)
+        if (!deliveryStation.isOccupied) {
+          const cameFrom = this.shortestPathFromTo(this.x, this.y, deliveryStation.x, deliveryStation.y);
+          const goalPlan = cameFrom.get(deliveryStation);
+          if (goalPlan && goalPlan.potentialScore > maxPotentialScore) {
+            maxPotentialScore = goalPlan.potentialScore;
+            bestDeliveryStation = deliveryStation;
+          }
+        }
+
+      if (bestDeliveryStation) {
+        this.goal = new Goal(bestDeliveryStation, GoalType.DELIVERY_STATION, 'delivery');
+        log.info(
+          'INFO : New Goal: delivering parcel(s)\n\t',
+          this.goal.toString(),
+          `with ${this.carriedScore} of potential value and ${this.numCarriedParcels} parcels`
+        );
+      }
     } else if (!this.goal || (this.goal && this.goal.type === GoalType.TILE)) {
       // no goal or random walk
+      let maxPotentialScore = 0;
+      let bestParcel = null;
       for (const parcel of parcels.values())
         if (parcel.carriedBy === null && parcel.isVisible) {
-          this.goal = new Goal(this.beliefSet.getTile(parcel.x, parcel.y), GoalType.PARCEL, parcel.id);
-          log.info('INFO : New Goal: tracking visible parcel\n\t', this.goal.toString());
-          break;
+          const parcelTile = this.beliefSet.getTile(parcel.x, parcel.y);
+          const cameFrom = this.shortestPathFromTo(this.x, this.y, parcel.x, parcel.y);
+          const goalPlan = cameFrom.get(parcelTile);
+          if (goalPlan && goalPlan.potentialScore > maxPotentialScore) {
+            maxPotentialScore = goalPlan.potentialScore;
+            bestParcel = parcel;
+          }
         }
+      if (bestParcel) {
+        this.goal = new Goal(this.beliefSet.getTile(bestParcel.x, bestParcel.y), GoalType.PARCEL, bestParcel.id);
+        log.info('INFO : New Goal: tracking visible parcel\n\t', this.goal.toString());
+      }
 
       // no goal and no visible parcels
       if (!this.goal) {
@@ -158,9 +182,9 @@ class IntentionPlanner {
     );
     const playerTile = this.beliefSet.getTile(startX, startY);
     frontier.push(new Element(playerTile, 0, this.carriedScore, this.numCarriedParcels));
-    const cameFrom = new Map<Tile, Action[]>();
+    const cameFrom = new Map<Tile, Plan>();
     const potentialScoreSoFar = new Map<Tile, number>();
-    cameFrom.set(playerTile, []);
+    cameFrom.set(playerTile, new Plan([], 0));
     potentialScoreSoFar.set(playerTile, this.carriedScore);
 
     const dacayParcelScoreOverDistance = 1;
@@ -173,7 +197,7 @@ class IntentionPlanner {
       const currentDistance = currentElement.distanceSoFar;
       const currentPotentialCarriedScore = currentElement.potentialCarriedScore;
       const currentNumCarriedParcels = currentElement.numCarriedParcels;
-      if (currentTile.isEqual(this.goal.tile)) break;
+      if (currentTile.isEqual(this.beliefSet.getTile(endX, endY))) break;
 
       for (const neighbor of this.beliefSet.getNeighbors(currentTile)) {
         const newDistance = currentDistance + 1;
@@ -186,9 +210,9 @@ class IntentionPlanner {
           potentialScoreSoFar.set(neighbor, newPotentialScore);
           frontier.push(new Element(neighbor, newDistance, newPotentialScore, newNumCarriedParcels));
 
-          const currentPlanActions = cameFrom.get(currentTile);
+          const currentPlanActions = cameFrom.get(currentTile).actions;
           const newPlanActions = currentPlanActions.concat([computeAction(currentTile, neighbor)]);
-          cameFrom.set(neighbor, newPlanActions);
+          cameFrom.set(neighbor, new Plan(newPlanActions, newPotentialScore));
         }
       }
     }

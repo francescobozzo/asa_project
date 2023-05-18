@@ -9,7 +9,7 @@ import Parcel from './parcel.js';
 class DeliverooMap {
   private map: Tile[][] = [];
   private validTiles: Tile[] = [];
-  private deliveryStations: Tile[] = [];
+  public deliveryStations: Tile[] = [];
   private agents = new Map<string, Agent>();
   private visibleAgentIds = new Set<string>();
   private notVisibleAgentIds = new Set<string>();
