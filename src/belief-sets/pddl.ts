@@ -40,8 +40,8 @@ export async function getPlan(objects: string, predicates: string, goal: string)
   const domain = new PddlDomain('deliveroo', moveAction, pickupAction, putdownAction);
   const problem = new PddlProblem('deliveroo-problem-1', objects, predicates, goal);
 
-  console.log(domain.toPddlString());
-  console.log(problem.toPddlString());
+  // console.log(domain.toPddlString());
+  // console.log(problem.toPddlString());
 
   // const consoleLogFunction = console.log;
   // console.log = function (...args) {};

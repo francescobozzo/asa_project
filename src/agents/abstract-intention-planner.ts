@@ -77,27 +77,15 @@ abstract class AbstractIntentionPlanner {
   // PUBLIC ACTIONS
 
   getNewPlan() {
-    if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.beliefSet.getTile(this.x, this.y).value) {
-      this.plan = [Action.PICKUP];
-    } else if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
-      if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) {
-        this.goal = null;
+    if (Number.isInteger(this.x) && Number.isInteger(this.y)) {
+      // check that previous action is completed
+      if (this.beliefSet.getTile(this.x, this.y).hasParcel) {
+        // if you are on a parcel take it no matter what is your current plan
         this.plan = [Action.PICKUP];
-      } else if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_STATION) {
-        this.carriedScore = 0;
-        this.numCarriedParcels = 0;
-        this.goal = null;
-        this.plan = [Action.PUTDOWN];
-      } else if (this.isGoalReached() && this.goal.type === GoalType.TILE) {
-        this.goal = null;
-        this.plan = [Action.UNDEFINED];
       } else if (this.goal) {
         this.computeNewPlan();
       }
     }
-    // if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
-    //   this.computeNewPlan();
-    // }
   }
 
   getNextAction() {
@@ -127,7 +115,7 @@ abstract class AbstractIntentionPlanner {
       const currentContribution = this.mainPlayerSpeedEstimation * (1 - this.mainPlayerSpeedLR);
       const newContribution = arrayAverage(deltas) * this.mainPlayerSpeedLR;
       this.mainPlayerSpeedEstimation = currentContribution + newContribution;
-      log.warn(
+      log.debug(
         `DEBUG: main player estimation updated: ${oldMainPlayerSpeedEstimation} -> ${this.mainPlayerSpeedEstimation}`
       );
     }

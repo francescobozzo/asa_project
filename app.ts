@@ -15,7 +15,7 @@ log.info(`INFO : parcel decay estimation learning rate ${Config.ParcelDecayLearn
 
 const client = new DeliverooApi(
   `http://localhost:${Config.Port}`,
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNiNzNlOGUyYjllIiwibmFtZSI6InRlc3QxIiwiaWF0IjoxNjgwNjQyMDIwfQ.H1EOanRFuikvCMJ7RZfQE0P6hJaDVWCaA20yCIL2pz8'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijc2ZjgwODFmZjM2IiwibmFtZSI6InByb2plY3QiLCJpYXQiOjE2ODQ2MDEyMDR9.ddqna_pP8QXXdl91RLLMueRpiId6zbpBhxU-cwjQVLU'
 );
 
 const agent = new BrainClass(Config.MainPlayerSpeedLearningRate);
@@ -52,7 +52,7 @@ if (Config.SenseParcels)
             break;
           default:
             log.debug(`INFO : ${move} action taken`);
-            await client.move(move);
+            await client.move(move.toString());
             break;
         }
       }

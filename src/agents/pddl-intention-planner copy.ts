@@ -22,6 +22,8 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
       predicates += ` (carryingParcel)`;
     }
 
+    // const oldConsoleLogFunction = console.log;
+    // console.log = (...args) => {};
     getPlan(pddlProblemContext.objects, predicates, goal)
       .then((newPddlPlan) => {
         const plan: Action[] = [];
@@ -40,6 +42,7 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
       .catch((error) => {
         log.debug("DEBUG: Couldn't generate a new pddl plan\n", error);
       });
+    // console.log = oldConsoleLogFunction;
   }
 
   potentialScore(startX: number, startY: number, endX: number, endY: number): number {

@@ -1,7 +1,7 @@
 import { PriorityQueue } from 'js-sdsl';
 import Tile from '../belief-sets/tile.js';
-import { Plan, computeAction } from '../belief-sets/utils.js';
-import AbstractIntentionPlanner from './abstract-intention-planner.js';
+import { Action, Plan, computeAction } from '../belief-sets/utils.js';
+import AbstractIntentionPlanner, { GoalType } from './abstract-intention-planner.js';
 
 class AstarIntentionPlanner extends AbstractIntentionPlanner {
   constructor(mainPlayerSpeedLR: number) {
@@ -9,8 +9,21 @@ class AstarIntentionPlanner extends AbstractIntentionPlanner {
   }
 
   computeNewPlan() {
-    const cameFrom = this.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
-    this.plan = cameFrom.has(this.goal.tile) ? cameFrom.get(this.goal.tile).actions : this.plan;
+    if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) {
+      this.goal = null;
+      this.plan = [Action.PICKUP];
+    } else if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_STATION) {
+      this.carriedScore = 0;
+      this.numCarriedParcels = 0;
+      this.goal = null;
+      this.plan = [Action.PUTDOWN];
+    } else if (this.isGoalReached() && this.goal.type === GoalType.TILE) {
+      this.goal = null;
+      this.plan = [Action.UNDEFINED];
+    } else if (this.goal) {
+      const cameFrom = this.shortestPathFromTo(this.x, this.y, this.goal.tile.x, this.goal.tile.y);
+      this.plan = cameFrom.has(this.goal.tile) ? cameFrom.get(this.goal.tile).actions : this.plan;
+    }
   }
 
   potentialScore(startX: number, startY: number, endX: number, endY: number): number {
