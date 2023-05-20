@@ -1,6 +1,21 @@
 import * as dotenv from 'dotenv';
+import AstarIntentionPlanner from './src/agents/astar-intention-planner.js';
+import PddlIntentionPlanner from './src/agents/pddl-intention-planner copy.js';
 
 dotenv.config();
+
+let brain = null;
+switch (process.env.BRAIN) {
+  case 'PDDL':
+    brain = PddlIntentionPlanner;
+    break;
+  case 'ASTAR':
+    brain = AstarIntentionPlanner;
+    break;
+  default:
+    brain = PddlIntentionPlanner;
+    break;
+}
 
 export default {
   Port: process.env.PORT ?? 8080,
@@ -13,4 +28,5 @@ export default {
   MainPlayerSpeedLearningRate: process.env.MAIN_PLAYER_SPEED_LEARNING_RATE
     ? process.env.MAIN_PLAYER_SPEED_LEARNING_RATE
     : 0.5,
+  Brain: brain,
 };

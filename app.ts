@@ -1,7 +1,6 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import log from 'loglevel';
 import Config from './config.js';
-import IntentionPlanner from './src/agents/intention-planner.js';
 import DeliverooMap from './src/belief-sets/matrix-map.js';
 import { Action } from './src/belief-sets/utils.js';
 
@@ -44,7 +43,9 @@ if (typeof Config.MainPlayerSpeedLearningRate === 'string')
   mainPlayerSpeedLR = parseFloat(Config.MainPlayerSpeedLearningRate);
 else mainPlayerSpeedLR = Config.MainPlayerSpeedLearningRate;
 
-const agent = new IntentionPlanner(mainPlayerSpeedLR);
+const BrainClass = Config.Brain;
+log.info('INFO : using brain', BrainClass.name);
+const agent = new BrainClass(mainPlayerSpeedLR);
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles, parcelDecayLR);
 });
