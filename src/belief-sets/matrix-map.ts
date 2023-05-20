@@ -1,7 +1,7 @@
 import log from 'loglevel';
-import { PDDLPlan, tileToPddl } from './pddl.js';
+import { PDDLProblemContext } from './pddl.js';
 import Tile from './tile.js';
-import { getRandomElementFromArray, setDifference, setUnion, arrayAverage } from './utils.js';
+import { arrayAverage, getRandomElementFromArray, setDifference, setUnion } from './utils.js';
 
 import Agent from './agent.js';
 import Parcel from './parcel.js';
@@ -28,6 +28,11 @@ class DeliverooMap {
 
   // PUBLIC SENSING
 
+  /**
+   * Update parcels when sensing
+   * @param parcels
+   * @returns True if new parcels are observed
+   */
   updateParcels(parcels: any[]) {
     const sensedIds = new Set<string>(parcels.map((p) => p.id));
     // the difference between old visible parcels and new visible parcels contains
@@ -67,6 +72,8 @@ class DeliverooMap {
       }
     }
     // this.print();
+
+    return newNotVisible.size !== 0;
   }
 
   updateParcelsDecayEstimation() {
@@ -269,8 +276,8 @@ class DeliverooMap {
 
   // PUBLIC EXPORTER
 
-  toPddlDomain(): PDDLPlan {
-    const objects: string[] = [];
+  toPddlDomain() {
+    const tileObjects: string[] = [];
     const movePredicates: string[] = [];
     const height = this.map.length;
 
@@ -279,19 +286,28 @@ class DeliverooMap {
 
       for (let j = 0; j < width; j++) {
         const current = this.map[i][j];
-        objects.push(tileToPddl(current));
+        tileObjects.push(this.tileToPddl(current));
 
         if (!current.isWalkable) continue;
 
         for (const neighbor of this.getNeighbors(current)) {
-          `(can-move ${tileToPddl(current)} ${tileToPddl(neighbor)})`;
+          movePredicates.push(`(can-move ${this.tileToPddl(current)} ${this.tileToPddl(neighbor)})`);
         }
       }
-
-      const predicates = movePredicates.join(' '); // add current position
-
-      return new PDDLPlan(objects, predicates);
     }
+
+    const predicates = movePredicates.join(' '); // TODO: add current position
+    const objects = tileObjects.join(' ');
+    return new PDDLProblemContext(objects, predicates);
+  }
+
+  tileToPddl(tile: Tile) {
+    return `y${tile.y}_x${tile.x}`;
+  }
+
+  pddlToTile(pddlObject: string): Tile {
+    const [y, x] = pddlObject.split('_');
+    return this.map[parseInt(x.slice(1))][parseInt(y.slice(1))];
   }
 
   toString(): string {

@@ -1,9 +1,8 @@
-import { PddlAction, PddlDomain, PddlProblem, onlineSolver } from '@unitn-asa/pddl-client';
+import { PddlAction, PddlDomain, PddlExecutor, PddlProblem, onlineSolver } from '@unitn-asa/pddl-client';
 import fs from 'fs';
-import Tile from './tile.js';
 
-export class PDDLPlan {
-  constructor(public objects: string[], predicates: string) {}
+export class PDDLProblemContext {
+  constructor(public objects: string, public predicates: string) {}
 }
 
 function readFile(path: string): Promise<string> {
@@ -15,26 +14,27 @@ function readFile(path: string): Promise<string> {
   });
 }
 
-export function tileToPddl(tile: Tile) {
-  return `y${tile.y}_x${tile.x}`;
-}
+const moveAction = new PddlAction(
+  'move',
+  '?fr ?to',
+  'and (at ?fr) (can-move ?fr ?to)',
+  'and (not (at ?fr)) (at ?to)',
+  async (from, to) => console.log('exec move', from, to)
+);
 
-export function pddlToTile(pddlObject: string): Tile {
-  const [y, x] = pddlObject.split('_');
-  return new Tile(parseInt(x.slice(1)), parseInt(y.slice(1)));
-}
-
-export async function getPlan(objects: string, predicates: string) {
-  const moveAction = new PddlAction(
-    'move',
-    '?fr ?to',
-    'and (at ?fr) (can-move ?fr ?to)',
-    'and (not (at ?fr)) (at ?to)',
-    async (l) => console.log('exec move', l)
-  );
-
+export async function getPlan(objects: string, predicates: string, goal: string) {
   const domain = new PddlDomain('deliveroo', moveAction);
-  const problem = new PddlProblem('deliveroo-problem-1', objects, predicates, 'and (at y8_x6)');
+  const problem = new PddlProblem('deliveroo-problem-1', objects, predicates, goal);
 
-  return await onlineSolver(domain, problem.toPddlString());
+  const consoleLogFunction = console.log;
+  console.log = function (...args) {};
+  const plan = await onlineSolver(domain.toPddlString(), problem.toPddlString());
+  console.log = consoleLogFunction;
+
+  return plan;
+}
+
+export function executePlan(plan) {
+  const pddlExecutor = new PddlExecutor(moveAction);
+  pddlExecutor.exec(plan);
 }

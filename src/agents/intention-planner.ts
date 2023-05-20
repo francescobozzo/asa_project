@@ -1,8 +1,9 @@
 import { PriorityQueue } from 'js-sdsl';
 import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
+import { getPlan } from '../belief-sets/pddl.js';
 import Tile from '../belief-sets/tile.js';
-import { Action, Plan, arrayAverage, computeAction } from '../belief-sets/utils.js';
+import { Action, ManhattanDistance, Plan, arrayAverage, computeAction } from '../belief-sets/utils.js';
 
 enum GoalType {
   PARCEL = 'parcel',
@@ -31,6 +32,7 @@ class IntentionPlanner {
   private modifiedAt: Date[] = [];
   private mainPlayerSpeedLR: number;
   private mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
+  private plan: Action[] = [];
 
   constructor(mainPlayerSpeedLR: number) {
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
@@ -43,12 +45,16 @@ class IntentionPlanner {
     this.beliefSet.updateAgents(agents);
   }
 
-  parcelSensingHandler(parcels: any) {
+  async parcelSensingHandler(parcels: any) {
     log.debug(`DEBUG: main player perceived ${parcels.length} parcels`);
-    this.beliefSet.updateParcels(parcels);
+    const sensedNewParsels = this.beliefSet.updateParcels(parcels);
+
     this.beliefSet.updateParcelsDecayEstimation();
     this.computeCarriedScore();
     this.setGoal();
+    if (true) {
+      await this.computeNewPlan();
+    }
   }
 
   updateMe(id: string, name: string, x: number, y: number, score: number) {
@@ -57,7 +63,7 @@ class IntentionPlanner {
     this.id = id;
     this.name = name;
     if (Number.isInteger(x) && Number.isInteger(y) && (this.x != x || this.y != y)) {
-      if (this.modifiedAt.length > 90) this.modifiedAt.pop();
+      if (this.modifiedAt.length > 90) this.modifiedAt.shift();
       this.modifiedAt.push(new Date());
     }
     this.x = x;
@@ -91,6 +97,65 @@ class IntentionPlanner {
       return cameFrom.has(this.goal.tile) ? cameFrom.get(this.goal.tile).actions[0] : Action.UNDEFINED;
     }
     return Action.UNDEFINED;
+  }
+
+  async computeNewPlan() {
+    if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.beliefSet.getTile(this.x, this.y).value) {
+      this.plan = [Action.PICKUP];
+    } else if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
+      if (this.isGoalReached() && this.goal.type === GoalType.PARCEL) {
+        this.goal = null;
+        this.plan = [Action.PICKUP];
+      } else if (this.isGoalReached() && this.goal.type === GoalType.DELIVERY_STATION) {
+        this.carriedScore = 0;
+        this.numCarriedParcels = 0;
+        this.goal = null;
+        this.plan = [Action.PUTDOWN];
+      } else if (this.isGoalReached() && this.goal.type === GoalType.TILE) {
+        this.goal = null;
+        this.plan = [Action.UNDEFINED];
+      } else {
+        const pddlProblemContext = this.beliefSet.toPddlDomain();
+        try {
+          const newPddlPlan = await getPlan(
+            pddlProblemContext.objects,
+            pddlProblemContext.predicates +
+              ` (at ${this.beliefSet.tileToPddl(this.beliefSet.getTile(this.x, this.y))})`,
+            `and (at ${this.beliefSet.tileToPddl(this.goal.tile)})`
+          );
+
+          this.plan = [];
+          for (const step of newPddlPlan) {
+            // TODO: handle parallel operations
+            if (step.action === 'move') {
+              this.plan.push(
+                computeAction(this.beliefSet.pddlToTile(step.args[0]), this.beliefSet.pddlToTile(step.args[1]))
+              );
+            }
+          }
+        } catch (error) {
+          log.debug("DEBUG: Couldn't generate a new pddl plan\n", error);
+        }
+      }
+    }
+  }
+
+  getNextActionPddl() {
+    if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.plan.length > 0) {
+      return this.plan.shift();
+    }
+    return Action.UNDEFINED;
+  }
+
+  potentialScorePddl(startX: number, startY: number, endX: number, endY: number): number {
+    return ManhattanDistance(this.beliefSet.getTile(startX, startY), this.beliefSet.getTile(endX, endY));
+  }
+
+  potentialScoreSearch(startX: number, startY: number, endX: number, endY: number): number {
+    const cameFrom = this.shortestPathFromTo(startX, startY, endX, endY);
+    const goalPlan = cameFrom.get(this.beliefSet.getTile(endX, endY));
+
+    return goalPlan ? goalPlan.potentialScore : 0;
   }
 
   // PRIVATE INNER FUNCTIONS
@@ -135,10 +200,9 @@ class IntentionPlanner {
       let bestDeliveryStation = null;
       for (const deliveryStation of this.beliefSet.deliveryStations)
         if (!deliveryStation.isOccupied) {
-          const cameFrom = this.shortestPathFromTo(this.x, this.y, deliveryStation.x, deliveryStation.y);
-          const goalPlan = cameFrom.get(deliveryStation);
-          if (goalPlan && goalPlan.potentialScore > maxPotentialScore) {
-            maxPotentialScore = goalPlan.potentialScore;
+          const potentialScore = this.potentialScorePddl(this.x, this.y, deliveryStation.x, deliveryStation.y);
+          if (potentialScore > maxPotentialScore) {
+            maxPotentialScore = potentialScore;
             bestDeliveryStation = deliveryStation;
           }
         }
@@ -158,10 +222,10 @@ class IntentionPlanner {
       for (const parcel of parcels.values())
         if (parcel.carriedBy === null && parcel.isVisible) {
           const parcelTile = this.beliefSet.getTile(parcel.x, parcel.y);
-          const cameFrom = this.shortestPathFromTo(this.x, this.y, parcel.x, parcel.y);
-          const goalPlan = cameFrom.get(parcelTile);
-          if (goalPlan && goalPlan.potentialScore > maxPotentialScore) {
-            maxPotentialScore = goalPlan.potentialScore;
+
+          const potentialScore = this.potentialScorePddl(this.x, this.y, parcelTile.x, parcelTile.y);
+          if (potentialScore > maxPotentialScore) {
+            maxPotentialScore = potentialScore;
             bestParcel = parcel;
           }
         }
