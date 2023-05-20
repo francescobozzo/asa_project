@@ -41,6 +41,7 @@ switch (process.env.LOG_LEVEL || 'WARN') {
 
 export default {
   Port: process.env.PORT ?? 8080,
+  Token: process.env.TOKEN,
   LogLevel: process.env.LOG_LEVEL ?? 'WARN',
   SenseYou: process.env.SENSE_YOU ? process.env.SENSE_YOU === 'true' : true,
   SenseAgents: process.env.SENSE_AGENTS ? process.env.SENSE_YOU === 'true' : true,

@@ -13,10 +13,7 @@ log.info('INFO : using brain', BrainClass.name);
 log.info(`INFO : main player speed estimation learning rate ${Config.MainPlayerSpeedLearningRate}`);
 log.info(`INFO : parcel decay estimation learning rate ${Config.ParcelDecayLearningRate}`);
 
-const client = new DeliverooApi(
-  `http://localhost:${Config.Port}`,
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijc2ZjgwODFmZjM2IiwibmFtZSI6InByb2plY3QiLCJpYXQiOjE2ODQ2MDEyMDR9.ddqna_pP8QXXdl91RLLMueRpiId6zbpBhxU-cwjQVLU'
-);
+const client = new DeliverooApi(`http://localhost:${Config.Port}`, Config.Token);
 
 const agent = new BrainClass(Config.MainPlayerSpeedLearningRate);
 client.socket.on('map', (width: number, height: number, tiles: any) => {
