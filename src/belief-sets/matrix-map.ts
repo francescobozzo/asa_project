@@ -278,7 +278,7 @@ class DeliverooMap {
 
   toPddlDomain() {
     const tileObjects: string[] = [];
-    const movePredicates: string[] = [];
+    const predicates: string[] = [];
     const height = this.map.length;
 
     for (let i = 0; i < height; i++) {
@@ -290,15 +290,33 @@ class DeliverooMap {
 
         if (!current.isWalkable) continue;
 
+        if (current.hasParcel) {
+          predicates.push(`(parcel ${this.tileToPddl(current)})`);
+        }
+
+        if (current.isDelivery) {
+          predicates.push(`(delivery ${this.tileToPddl(current)})`);
+        }
+
         for (const neighbor of this.getNeighbors(current)) {
-          movePredicates.push(`(can-move ${this.tileToPddl(current)} ${this.tileToPddl(neighbor)})`);
+          predicates.push(`(can-move ${this.tileToPddl(current)} ${this.tileToPddl(neighbor)})`);
         }
       }
     }
 
-    const predicates = movePredicates.join(' '); // TODO: add current position
+    // for (let i = 0; i < height; i++) {
+    //   const width = this.map[i].length;
+
+    //   for (let j = 0; j < width; j++) {
+    //     const current = this.map[i][j];
+    //     if (current.hasParcel) {
+    //       predicates.push(`(parcel ${this.tileToPddl(current)})`);
+    //     }
+    //   }
+    // }
+
     const objects = tileObjects.join(' ');
-    return new PDDLProblemContext(objects, predicates);
+    return new PDDLProblemContext(objects, predicates.join(' '));
   }
 
   tileToPddl(tile: Tile) {

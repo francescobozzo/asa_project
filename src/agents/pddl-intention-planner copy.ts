@@ -11,17 +11,28 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
   computeNewPlan() {
     const pddlProblemContext = this.beliefSet.toPddlDomain();
 
-    getPlan(
-      pddlProblemContext.objects,
-      pddlProblemContext.predicates + ` (at ${this.beliefSet.tileToPddl(this.beliefSet.getTile(this.x, this.y))})`,
-      `and (at ${this.beliefSet.tileToPddl(this.goal.tile)})`
-    )
+    let goal = '';
+    let predicates =
+      pddlProblemContext.predicates + ` (at ${this.beliefSet.tileToPddl(this.beliefSet.getTile(this.x, this.y))})`;
+
+    if (this.carriedScore === 0) {
+      goal = `and (carryingParcel)`;
+    } else {
+      goal = `and (not (carryingParcel))`;
+      predicates += ` (carryingParcel)`;
+    }
+
+    getPlan(pddlProblemContext.objects, predicates, goal)
       .then((newPddlPlan) => {
         const plan: Action[] = [];
         for (const step of newPddlPlan) {
           // TODO: handle parallel operations
           if (step.action === 'move') {
             plan.push(computeAction(this.beliefSet.pddlToTile(step.args[0]), this.beliefSet.pddlToTile(step.args[1])));
+          } else if (step.action === 'pickup') {
+            plan.push(Action.PICKUP);
+          } else if (step.action === 'putdown') {
+            plan.push(Action.PUTDOWN);
           }
         }
         this.plan = plan;

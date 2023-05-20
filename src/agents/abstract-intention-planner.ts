@@ -53,7 +53,7 @@ abstract class AbstractIntentionPlanner {
     this.beliefSet.updateParcelsDecayEstimation();
     this.computeCarriedScore();
     this.setGoal();
-    if (true) {
+    if (this.plan.length === 0) {
       this.getNewPlan();
     }
   }
@@ -95,6 +95,9 @@ abstract class AbstractIntentionPlanner {
         this.computeNewPlan();
       }
     }
+    // if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.goal) {
+    //   this.computeNewPlan();
+    // }
   }
 
   getNextAction() {
