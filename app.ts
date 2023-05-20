@@ -4,50 +4,23 @@ import Config from './config.js';
 import DeliverooMap from './src/belief-sets/matrix-map.js';
 import { Action } from './src/belief-sets/utils.js';
 
-switch (Config.LogLevel) {
-  case 'DEBUG':
-    log.setLevel('DEBUG');
-    break;
-  case 'INFO':
-    log.setLevel('INFO');
-    break;
-  case 'WARN':
-    log.setLevel('WARN');
-    break;
-  case 'ERROR':
-    log.setLevel('ERROR');
-    break;
-  case 'SILENT':
-    log.setLevel('SILENT');
-    break;
-  case 'TRACE':
-    log.setLevel('TRACE');
-    break;
-}
-
+const BrainClass = Config.Brain;
 log.info(`INFO : sense you ${Config.SenseYou}`);
 log.info(`INFO : sense agents ${Config.SenseAgents}`);
 log.info(`INFO : sense parcels ${Config.SenseParcels}`);
 log.info(`INFO : take actions ${Config.TakeActions}`);
+log.info('INFO : using brain', BrainClass.name);
+log.info(`INFO : main player speed estimation learning rate ${Config.MainPlayerSpeedLearningRate}`);
+log.info(`INFO : parcel decay estimation learning rate ${Config.ParcelDecayLearningRate}`);
 
 const client = new DeliverooApi(
   `http://localhost:${Config.Port}`,
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNiNzNlOGUyYjllIiwibmFtZSI6InRlc3QxIiwiaWF0IjoxNjgwNjQyMDIwfQ.H1EOanRFuikvCMJ7RZfQE0P6hJaDVWCaA20yCIL2pz8'
 );
 
-let parcelDecayLR: number;
-if (typeof Config.ParcelDecayLearningRate === 'string') parcelDecayLR = parseFloat(Config.ParcelDecayLearningRate);
-else parcelDecayLR = Config.ParcelDecayLearningRate;
-let mainPlayerSpeedLR: number;
-if (typeof Config.MainPlayerSpeedLearningRate === 'string')
-  mainPlayerSpeedLR = parseFloat(Config.MainPlayerSpeedLearningRate);
-else mainPlayerSpeedLR = Config.MainPlayerSpeedLearningRate;
-
-const BrainClass = Config.Brain;
-log.info('INFO : using brain', BrainClass.name);
-const agent = new BrainClass(mainPlayerSpeedLR);
+const agent = new BrainClass(Config.MainPlayerSpeedLearningRate);
 client.socket.on('map', (width: number, height: number, tiles: any) => {
-  agent.beliefSet = new DeliverooMap(width, height, tiles, parcelDecayLR);
+  agent.beliefSet = new DeliverooMap(width, height, tiles, Config.ParcelDecayLearningRate);
 });
 
 if (Config.SenseYou)
