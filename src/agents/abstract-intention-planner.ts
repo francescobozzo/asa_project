@@ -90,9 +90,13 @@ abstract class AbstractIntentionPlanner {
 
   getNextAction() {
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.plan.length > 0) {
-      return this.plan.shift();
+      return this.plan[0];
     }
     return Action.UNDEFINED;
+  }
+
+  actionAccomplished() {
+    this.plan.shift();
   }
 
   // PRIVATE INNER FUNCTIONS

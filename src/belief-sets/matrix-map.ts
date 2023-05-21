@@ -208,6 +208,15 @@ class DeliverooMap {
     return [carriedScore, numCarriedParcels];
   }
 
+  getVisibleParcels() {
+    const parcels = [];
+    for (const parcelId of this.visibleParcelIds) {
+      parcels.push(this.parcels.get(parcelId));
+    }
+
+    return parcels;
+  }
+
   getParcels() {
     return this.parcels;
   }
@@ -290,9 +299,9 @@ class DeliverooMap {
 
         if (!current.isWalkable) continue;
 
-        if (current.hasParcel) {
-          predicates.push(`(parcel ${this.tileToPddl(current)})`);
-        }
+        // if (current.hasParcel) {
+        //   predicates.push(`(parcel ${this.tileToPddl(current)})`);
+        // }
 
         if (current.isDelivery) {
           predicates.push(`(delivery ${this.tileToPddl(current)})`);
@@ -316,7 +325,7 @@ class DeliverooMap {
     // }
 
     const objects = tileObjects.join(' ');
-    return new PDDLProblemContext(objects, predicates.join(' '));
+    return new PDDLProblemContext(objects, predicates);
   }
 
   tileToPddl(tile: Tile) {

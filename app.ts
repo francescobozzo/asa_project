@@ -36,22 +36,28 @@ if (Config.SenseParcels)
       agent.parcelSensingHandler(parcels);
       if (Config.TakeActions) {
         const move = agent.getNextAction();
+
+        let result = null;
         switch (move) {
           case Action.UNDEFINED:
             break;
           case Action.PICKUP:
             log.debug(`INFO : ${move} action taken`);
-            await client.pickup();
+            result = await client.pickup();
+            if (result.length >= 0) agent.actionAccomplished();
             break;
           case Action.PUTDOWN:
             log.debug(`INFO : ${move} action taken`);
-            await client.putdown();
+            result = await client.putdown();
+            if (result.length >= 0) agent.actionAccomplished();
             break;
           default:
             log.debug(`INFO : ${move} action taken`);
-            await client.move(move.toString());
+            result = await client.move(move.toString());
+            if (result !== false) agent.actionAccomplished();
             break;
         }
+        console.log(result);
       }
     }
   });

@@ -2,7 +2,8 @@ import { PddlAction, PddlDomain, PddlExecutor, PddlProblem, onlineSolver } from 
 import fs from 'fs';
 
 export class PDDLProblemContext {
-  constructor(public objects: string, public predicates: string) {}
+  public actions = [moveAction, pickupAction];
+  constructor(public objects: string, public predicates: string[]) {}
 }
 
 function readFile(path: string): Promise<string> {
@@ -25,23 +26,25 @@ const pickupAction = new PddlAction(
   'pickup',
   '?position',
   'and (at ?position) (parcel ?position)',
-  'and (not (parcel ?position)) (carryingParcel)',
+  'and (not (parcel ?position)) (carrying ?position)',
   async (position) => console.log('exec pickup parcel', position)
 );
-const putdownAction = new PddlAction(
-  'putdown',
-  '?position',
-  'and (at ?position) (carryingParcel) (delivery ?position)',
-  'and (at ?position) (not (carryingParcel))',
-  async (position) => console.log('exec putdown parcel', position)
-);
+// const moveToValueAction = new PddlAction(
+//   'move-to-value',
+//   '?fr ?to',
+//   'and (at ?fr) (can-move ?fr ?to) (parcel ?to)',
+//   'and (at ?to) (carrying ?to) (not (parcel ?to))'
+// );
 
-export async function getPlan(objects: string, predicates: string, goal: string) {
-  const domain = new PddlDomain('deliveroo', moveAction, pickupAction, putdownAction);
-  const problem = new PddlProblem('deliveroo-problem-1', objects, predicates, goal);
+export async function getPlan(context: PDDLProblemContext, goal: string) {
+  console.log('non ti scordare di me');
+  console.log(context.actions);
+  const domain = new PddlDomain('deliveroo', ...context.actions);
+  console.log('el motoporco');
+  const problem = new PddlProblem('deliveroo-problem-1', context.objects, context.predicates.join(' '), goal);
 
-  // console.log(domain.toPddlString());
-  // console.log(problem.toPddlString());
+  console.log(domain.toPddlString());
+  console.log(problem.toPddlString());
 
   // const consoleLogFunction = console.log;
   // console.log = function (...args) {};
