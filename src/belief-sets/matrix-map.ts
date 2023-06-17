@@ -208,7 +208,7 @@ class DeliverooMap {
     return [carriedScore, numCarriedParcels];
   }
 
-  getVisibleParcels() {
+  getVisibleParcels(): Parcel[] {
     const parcels = [];
     for (const parcelId of this.visibleParcelIds) {
       parcels.push(this.parcels.get(parcelId));

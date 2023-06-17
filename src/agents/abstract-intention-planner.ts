@@ -31,6 +31,7 @@ abstract class AbstractIntentionPlanner {
   private mainPlayerSpeedLR: number;
   private mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
   protected plan: Action[] = [];
+  protected distanceCache = new Map<string, number>();
 
   constructor(mainPlayerSpeedLR: number) {
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
