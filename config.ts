@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
-import AstarIntentionPlanner from './src/agents/astar-intention-planner.js';
-import PddlIntentionPlanner from './src/agents/pddl-intention-planner copy.js';
 import log from 'loglevel';
+import AstarIntentionPlanner from './src/agents/astar-intention-planner.js';
+import PddlIntentionPlanner from './src/agents/pddl-intention-planner.js';
 
 dotenv.config();
 

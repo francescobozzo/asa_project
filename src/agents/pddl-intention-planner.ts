@@ -1,9 +1,9 @@
+import { PddlAction } from '@unitn-asa/pddl-client';
 import log from 'loglevel';
+import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
-import Parcel from '../belief-sets/parcel.js';
-import { PddlAction } from '@unitn-asa/pddl-client';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   constructor(mainPlayerSpeedLR: number) {
@@ -54,6 +54,7 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
           }
         }
         this.plan = plan;
+        console.log(plan);
       })
       .catch((error) => {
         log.debug("DEBUG: Couldn't generate a new pddl plan\n", error);

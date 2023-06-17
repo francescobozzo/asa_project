@@ -30,11 +30,14 @@ if (Config.SenseAgents)
     if (agent.beliefSet !== null) agent.agentsSensingHandler(agents);
   });
 
+let actionInProgress = false;
 if (Config.SenseParcels)
   client.socket.on('parcels sensing', async (parcels) => {
     if (agent.beliefSet !== null) {
       agent.parcelSensingHandler(parcels);
-      if (Config.TakeActions) {
+
+      if (Config.TakeActions && !actionInProgress) {
+        actionInProgress = true;
         const move = agent.getNextAction();
 
         let result = null;
@@ -57,7 +60,7 @@ if (Config.SenseParcels)
             if (result !== false) agent.actionAccomplished();
             break;
         }
-        console.log(result);
+        actionInProgress = false;
       }
     }
   });

@@ -37,10 +37,8 @@ const pickupAction = new PddlAction(
 // );
 
 export async function getPlan(context: PDDLProblemContext, goal: string) {
-  console.log('non ti scordare di me');
   console.log(context.actions);
   const domain = new PddlDomain('deliveroo', ...context.actions);
-  console.log('el motoporco');
   const problem = new PddlProblem('deliveroo-problem-1', context.objects, context.predicates.join(' '), goal);
 
   console.log(domain.toPddlString());
