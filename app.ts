@@ -30,37 +30,41 @@ if (Config.SenseAgents)
     if (agent.beliefSet !== null) agent.agentsSensingHandler(agents);
   });
 
-let actionInProgress = false;
 if (Config.SenseParcels)
   client.socket.on('parcels sensing', async (parcels) => {
     if (agent.beliefSet !== null) {
       agent.parcelSensingHandler(parcels);
-
-      if (Config.TakeActions && !actionInProgress) {
-        actionInProgress = true;
-        const move = agent.getNextAction();
-
-        let result = null;
-        switch (move) {
-          case Action.UNDEFINED:
-            break;
-          case Action.PICKUP:
-            log.debug(`INFO : ${move} action taken`);
-            result = await client.pickup();
-            if (result.length >= 0) agent.actionAccomplished();
-            break;
-          case Action.PUTDOWN:
-            log.debug(`INFO : ${move} action taken`);
-            result = await client.putdown();
-            if (result.length >= 0) agent.actionAccomplished();
-            break;
-          default:
-            log.debug(`INFO : ${move} action taken`);
-            result = await client.move(move.toString());
-            if (result !== false) agent.actionAccomplished();
-            break;
-        }
-        actionInProgress = false;
-      }
     }
   });
+
+let actionInProgress = false;
+const agentDoAction = async () => {
+  if (Config.TakeActions && !actionInProgress) {
+    actionInProgress = true;
+    const move = agent.getNextAction();
+
+    let result = null;
+    switch (move) {
+      case Action.UNDEFINED:
+        break;
+      case Action.PICKUP:
+        log.debug(`INFO : ${move} action taken`);
+        result = await client.pickup();
+        if (result.length >= 0) agent.actionAccomplished();
+        break;
+      case Action.PUTDOWN:
+        log.debug(`INFO : ${move} action taken`);
+        result = await client.putdown();
+        if (result.length >= 0) agent.actionAccomplished();
+        break;
+      default:
+        log.debug(`INFO : ${move} action taken`);
+        result = await client.move(move.toString());
+        if (result !== false) agent.actionAccomplished();
+        break;
+    }
+    actionInProgress = false;
+  }
+};
+// console.log(Config.AgentClock);
+setInterval(agentDoAction, Config.AgentClock);

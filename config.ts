@@ -54,4 +54,5 @@ export default {
     ? parseFloat(process.env.MAIN_PLAYER_SPEED_LEARNING_RATE)
     : 0.5,
   Brain: brain,
+  AgentClock: parseInt(process.env.AGENT_CLOCK) ?? 10,
 };
