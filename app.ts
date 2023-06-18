@@ -15,7 +15,7 @@ log.info(`INFO : parcel decay estimation learning rate ${Config.ParcelDecayLearn
 
 const client = new DeliverooApi(`http://localhost:${Config.Port}`, Config.Token);
 
-const agent = new BrainClass(Config.MainPlayerSpeedLearningRate);
+const agent = new BrainClass(Config.MainPlayerSpeedLearningRate, Config.CumulatedCarriedPenaltyFactor);
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles, Config.ParcelDecayLearningRate);
 });
@@ -55,19 +55,19 @@ const agentDoAction = async () => {
       case Action.UNDEFINED:
         break;
       case Action.PICKUP:
-        log.error(`INFO : ${move} action taken`);
+        log.info(`INFO : ${move} action taken`);
         result = await client.pickup();
         if (result.length >= 0) agent.actionAccomplished();
         else actionErrors += 1;
         break;
       case Action.PUTDOWN:
-        log.error(`INFO : ${move} action taken`);
+        log.info(`INFO : ${move} action taken`);
         result = await client.putdown();
         if (result.length >= 0) agent.actionAccomplished();
         else actionErrors += 1;
         break;
       default:
-        log.error(`INFO : ${move} action taken`);
+        log.info(`INFO : ${move} action taken`);
         result = await client.move(move.toString());
         if (result !== false) agent.actionAccomplished();
         else actionErrors += 1;

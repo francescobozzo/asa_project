@@ -32,9 +32,11 @@ abstract class AbstractIntentionPlanner {
   private mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
   protected plan: Action[] = [];
   protected distanceCache = new Map<string, number>();
+  protected cumulatedCarriedPenaltyFactor: number;
 
-  constructor(mainPlayerSpeedLR: number) {
+  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number) {
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
+    this.cumulatedCarriedPenaltyFactor = cumulatedCarriedPenaltyFactor;
   }
 
   abstract potentialScore(startX: number, startY: number, endX: number, endY: number): number;

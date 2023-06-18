@@ -56,4 +56,5 @@ export default {
   Brain: brain,
   AgentClock: parseInt(process.env.AGENT_CLOCK) ?? 10,
   ActionErrorPatience: parseInt(process.env.ACTION_ERROR_PATIENCE) ?? 10,
+  CumulatedCarriedPenaltyFactor: parseFloat(process.env.CUMULATED_CARRIED_PENALTY_FACTOR) ?? 0.15,
 };

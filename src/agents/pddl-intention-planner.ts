@@ -6,8 +6,8 @@ import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.j
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
-  constructor(mainPlayerSpeedLR: number) {
-    super(mainPlayerSpeedLR);
+  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number) {
+    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor);
   }
 
   private buildPDDLPutdownAction(parcels: Parcel[]) {
@@ -24,11 +24,27 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
   }
 
   computeNewPlan() {
+    class ParcelPotentialScore {
+      constructor(public parcel: Parcel, public potentialScore: number) {}
+    }
+
     const pddlProblemContext = this.beliefSet.toPddlDomain();
-    const parcelsToPick = this.beliefSet
+    const parcelsPotentialScoresToPick = this.beliefSet
       .getVisibleParcels()
       .concat(this.beliefSet.getNotVisibleParcels())
-      .filter((parcel) => this.potentialScore(this.x, this.y, parcel.x, parcel.y) > 0);
+      .map((parcel) => new ParcelPotentialScore(parcel, this.potentialScore(this.x, this.y, parcel.x, parcel.y)))
+      .filter((pp) => pp.potentialScore > 0)
+      .sort((pp1, pp2) => pp2.potentialScore - pp1.potentialScore);
+
+    let cumulativePotentialScore = 0;
+    const parcelsToPick = [];
+    for (const pp of parcelsPotentialScoresToPick) {
+      const realValue = pp.potentialScore - this.cumulatedCarriedPenaltyFactor * cumulativePotentialScore;
+      if (realValue > 0) {
+        cumulativePotentialScore += pp.potentialScore;
+        parcelsToPick.push(pp.parcel);
+      }
+    }
     pddlProblemContext.actions.push(this.buildPDDLPutdownAction(parcelsToPick));
 
     const goal = 'and (delivered)';
@@ -64,7 +80,7 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
           }
         }
         this.plan = plan;
-        console.log(plan);
+        // console.log(plan);
       })
       .catch((error) => {
         log.debug("DEBUG: Couldn't generate a new pddl plan\n", error);

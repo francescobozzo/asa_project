@@ -4,8 +4,8 @@ import { Action, Plan, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner, { GoalType } from './abstract-intention-planner.js';
 
 class AstarIntentionPlanner extends AbstractIntentionPlanner {
-  constructor(mainPlayerSpeedLR: number) {
-    super(mainPlayerSpeedLR);
+  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number) {
+    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor);
   }
 
   computeNewPlan() {
