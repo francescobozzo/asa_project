@@ -95,6 +95,8 @@ abstract class AbstractIntentionPlanner {
 
   getNextAction() {
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.plan.length > 0) {
+      if (this.beliefSet.getTile(this.x, this.y).hasParcel) this.plan.unshift(Action.PICKUP);
+      if (this.beliefSet.getTile(this.x, this.y).isDelivery && this.carriedScore > 0) this.plan.unshift(Action.PUTDOWN);
       return this.plan[0];
     }
     return Action.UNDEFINED;
