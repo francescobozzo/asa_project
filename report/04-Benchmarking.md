@@ -1,0 +1,2 @@
+\newpage
+# Benchmarking {#sec:benchmarking}
