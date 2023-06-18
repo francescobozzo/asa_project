@@ -4,6 +4,7 @@ import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
+import { isMainThread } from 'worker_threads';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   constructor(mainPlayerSpeedLR: number) {
@@ -80,12 +81,25 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     const keyDistanceCache =
       this.beliefSet.tileToPddl(this.beliefSet.getTile(startX, startY)) +
       this.beliefSet.tileToPddl(this.beliefSet.getTile(endX, endY));
+    let minimumDistance = ManhattanDistance(this.beliefSet.getTile(endX, endY), this.beliefSet.deliveryStations[0]);
+    for (const deliveryZone of this.beliefSet.deliveryStations) {
+      const keyDeliveryZoneCache =
+        this.beliefSet.tileToPddl(this.beliefSet.getTile(endX, endY)) +
+        this.beliefSet.tileToPddl(this.beliefSet.getTile(deliveryZone.x, deliveryZone.y));
+      const currentDistance =
+        this.distanceCache.get(keyDeliveryZoneCache) ??
+        ManhattanDistance(this.beliefSet.getTile(endX, endY), deliveryZone);
+      if (currentDistance < minimumDistance) {
+        minimumDistance = currentDistance;
+      }
+    }
     return (
       this.beliefSet.getTile(endX, endY).value -
       this.computeParcelLossEstimation(
         this.distanceCache.get(keyDistanceCache) ??
           ManhattanDistance(this.beliefSet.getTile(startX, startY), this.beliefSet.getTile(endX, endY))
-      )
+      ) -
+      this.computeParcelLossEstimation(minimumDistance)
     );
   }
 }
