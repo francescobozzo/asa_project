@@ -25,11 +25,10 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
 
   computeNewPlan() {
     const pddlProblemContext = this.beliefSet.toPddlDomain();
-    const visibleParcels = this.beliefSet.getVisibleParcels();
-
-    const parcelsToPick = visibleParcels.filter(
-      (parcel) => this.potentialScore(this.x, this.y, parcel.x, parcel.y) > 0
-    );
+    const parcelsToPick = this.beliefSet
+      .getVisibleParcels()
+      .concat(this.beliefSet.getNotVisibleParcels())
+      .filter((parcel) => this.potentialScore(this.x, this.y, parcel.x, parcel.y) > 0);
     pddlProblemContext.actions.push(this.buildPDDLPutdownAction(parcelsToPick));
 
     const goal = 'and (delivered)';

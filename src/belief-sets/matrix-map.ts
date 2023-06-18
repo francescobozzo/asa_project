@@ -225,6 +225,15 @@ class DeliverooMap {
     return parcels;
   }
 
+  getNotVisibleParcels(): Parcel[] {
+    const parcels = [];
+    for (const parcelId of this.notVisibleParcelIds) {
+      parcels.push(this.parcels.get(parcelId));
+    }
+
+    return parcels;
+  }
+
   getParcels() {
     return this.parcels;
   }
