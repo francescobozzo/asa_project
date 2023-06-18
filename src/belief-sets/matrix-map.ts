@@ -90,6 +90,14 @@ class DeliverooMap {
     }
   }
 
+  getAgents() {
+    return this.agents;
+  }
+
+  getMapDiagonal() {
+    return Math.ceil(this.map.length * Math.sqrt(2));
+  }
+
   getVisibleParcelIds() {
     return this.visibleAgentIds;
   }

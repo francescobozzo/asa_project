@@ -4,10 +4,11 @@ import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
+import Agent from '../belief-sets/agent.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
-  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number) {
-    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor);
+  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number, useProbabilisticModel: boolean) {
+    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel);
   }
 
   private buildPDDLPutdownAction(parcels: Parcel[]) {
@@ -32,7 +33,16 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     const parcelsPotentialScoresToPick = this.beliefSet
       .getVisibleParcels()
       .concat(this.beliefSet.getNotVisibleParcels())
-      .map((parcel) => new ParcelPotentialScore(parcel, this.potentialScore(this.x, this.y, parcel.x, parcel.y)))
+      .map(
+        (parcel) =>
+          new ParcelPotentialScore(
+            parcel,
+            this.useProbabilisticModel
+              ? this.potentialScore(this.x, this.y, parcel.x, parcel.y)
+              : this.potentialScore(this.x, this.y, parcel.x, parcel.y) -
+                this.probabilisticPenalty(this.x, this.y, parcel)
+          )
+      )
       .filter((pp) => pp.potentialScore > 0)
       .sort((pp1, pp2) => pp2.potentialScore - pp1.potentialScore);
 
@@ -112,6 +122,32 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
       ) -
       this.computeParcelLossEstimation(minimumDistance)
     );
+  }
+
+  private probabilisticPenalty(startX: number, endX: number, parcel: Parcel): number {
+    const agentDistances = new Map<Agent, number>();
+    const agentProbabilities = new Map<Agent, number>();
+    let maxDistance = ManhattanDistance(
+      this.beliefSet.getTile(startX, endX),
+      this.beliefSet.getTile(parcel.x, parcel.y)
+    );
+    for (const agent of this.beliefSet.getAgents().values()) {
+      if (agent.isVisible) {
+        const distance = ManhattanDistance(
+          this.beliefSet.getTile(parcel.x, parcel.y),
+          this.beliefSet.getTile(agent.x, agent.y)
+        );
+        agentDistances.set(agent, distance);
+        maxDistance = maxDistance > distance ? maxDistance : distance;
+      }
+    }
+
+    let probability = 0.5;
+    for (const [agent, distance] of agentDistances) {
+      agentProbabilities.set(agent, (maxDistance - distance) / maxDistance);
+      probability += (maxDistance - distance) / maxDistance;
+    }
+    return parcel.reward * probability;
   }
 }
 

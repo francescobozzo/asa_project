@@ -33,10 +33,12 @@ abstract class AbstractIntentionPlanner {
   protected plan: Action[] = [];
   protected distanceCache = new Map<string, number>();
   protected cumulatedCarriedPenaltyFactor: number;
+  protected useProbabilisticModel: boolean = false;
 
-  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number) {
+  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number, useProbabilisticModel: boolean) {
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
     this.cumulatedCarriedPenaltyFactor = cumulatedCarriedPenaltyFactor;
+    this.useProbabilisticModel = useProbabilisticModel;
   }
 
   abstract potentialScore(startX: number, startY: number, endX: number, endY: number): number;

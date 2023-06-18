@@ -15,7 +15,11 @@ log.info(`INFO : parcel decay estimation learning rate ${Config.ParcelDecayLearn
 
 const client = new DeliverooApi(`http://localhost:${Config.Port}`, Config.Token);
 
-const agent = new BrainClass(Config.MainPlayerSpeedLearningRate, Config.CumulatedCarriedPenaltyFactor);
+const agent = new BrainClass(
+  Config.MainPlayerSpeedLearningRate,
+  Config.CumulatedCarriedPenaltyFactor,
+  Config.UseProbabilisticModel
+);
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles, Config.ParcelDecayLearningRate);
 });
