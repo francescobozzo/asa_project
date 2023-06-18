@@ -1,5 +1,5 @@
 \newpage
-# Deliveroo {#sec:introduction}
+# Deliveroo {#sec:deliveroo}
 *Deliveroo* is the environement provided to test the developed agents of the project, it is composed of a grid of tiles divided into two main categories: walkable (green and red) and not walkable (black). A walkable tile can be a delivery zone (red).
 
 Several parcels, represented by cubes, are scattered around the map, the goal of the agent is to move across it collecting the largest number of parcels. The final objective is to deliver collected elements in one delivery zone.
