@@ -55,4 +55,5 @@ export default {
     : 0.5,
   Brain: brain,
   AgentClock: parseInt(process.env.AGENT_CLOCK) ?? 10,
+  ActionErrorPatience: parseInt(process.env.ACTION_ERROR_PATIENCE) ?? 10,
 };

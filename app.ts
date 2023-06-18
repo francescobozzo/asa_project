@@ -38,8 +38,15 @@ if (Config.SenseParcels)
   });
 
 let actionInProgress = false;
+let actionErrors = 0;
 const agentDoAction = async () => {
   if (Config.TakeActions && !actionInProgress) {
+    if (actionErrors >= Config.ActionErrorPatience) {
+      agent.setGoal();
+      agent.computeNewPlan();
+      actionErrors = 0;
+    }
+
     actionInProgress = true;
     const move = agent.getNextAction();
 
@@ -48,19 +55,23 @@ const agentDoAction = async () => {
       case Action.UNDEFINED:
         break;
       case Action.PICKUP:
-        log.debug(`INFO : ${move} action taken`);
+        log.error(`INFO : ${move} action taken`);
         result = await client.pickup();
         if (result.length >= 0) agent.actionAccomplished();
+        else actionErrors += 1;
         break;
       case Action.PUTDOWN:
-        log.debug(`INFO : ${move} action taken`);
+        log.error(`INFO : ${move} action taken`);
         result = await client.putdown();
         if (result.length >= 0) agent.actionAccomplished();
+        else actionErrors += 1;
         break;
       default:
-        log.debug(`INFO : ${move} action taken`);
+        log.error(`INFO : ${move} action taken`);
         result = await client.move(move.toString());
         if (result !== false) agent.actionAccomplished();
+        else actionErrors += 1;
+
         break;
     }
     actionInProgress = false;
@@ -68,3 +79,18 @@ const agentDoAction = async () => {
 };
 // console.log(Config.AgentClock);
 setInterval(agentDoAction, Config.AgentClock);
+
+// update not visible parcels value using a sort of dynamic set interval
+var updateValueNotVisibleParcels = function () {
+  if (agent.beliefSet) {
+    for (const parcelId of agent.beliefSet.notVisibleParcelIds.values()) {
+      const parcel = agent.beliefSet.getParcels().get(parcelId);
+      parcel.reward -= 1;
+
+      if (!agent.beliefSet.getTile(parcel.x, parcel.y).isDelivery)
+        agent.beliefSet.setTileValue(parcel.x, parcel.y, parcel.reward);
+    }
+  }
+  setTimeout(updateValueNotVisibleParcels, agent.beliefSet?.getParcelsDecayEstimation() * 1000 ?? 1000);
+};
+setTimeout(updateValueNotVisibleParcels, agent.beliefSet?.getParcelsDecayEstimation() * 1000 ?? 1000);

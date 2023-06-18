@@ -57,15 +57,14 @@ class DeliverooMap {
     // not visible parcels are marked as notVisible
     for (const parcelId of this.notVisibleParcelIds.values()) {
       const parcel = this.parcels.get(parcelId);
-      this.setTileValue(parcel.x, parcel.y, 0);
-      parcel.reward -= 1; // TODO: multiply per inferred decay, considering spawn time
       parcel.isVisible = false;
     }
 
     // delete parcels with reward equal to 0
     for (const parcelId of Array.from(this.parcels.keys())) {
       const parcel = this.parcels.get(parcelId);
-      if (parcel.reward === 0) {
+      if (parcel.reward <= 0) {
+        this.setTileValue(parcel.x, parcel.y, 0);
         this.parcels.delete(parcelId);
         this.notVisibleParcelIds.delete(parcelId);
         this.visibleParcelIds.delete(parcelId);
@@ -90,6 +89,15 @@ class DeliverooMap {
       );
     }
   }
+
+  getVisibleParcelIds() {
+    return this.visibleAgentIds;
+  }
+
+  getNotVisibleParcelIds() {
+    return this.notVisibleAgentIds;
+  }
+
   getParcelsDecayEstimation() {
     return this.parcelsDecayEstimation;
   }
@@ -286,6 +294,7 @@ class DeliverooMap {
   // PUBLIC EXPORTER
 
   toPddlDomain() {
+    console.log('Generating pddl domain');
     const tileObjects: string[] = [];
     const predicates: string[] = [];
     const height = this.map.length;
@@ -327,6 +336,7 @@ class DeliverooMap {
     //     }
     //   }
     // }
+    console.log('Got pddl domain');
 
     const objects = tileObjects.join(' ');
     return new PDDLProblemContext(objects, predicates);
