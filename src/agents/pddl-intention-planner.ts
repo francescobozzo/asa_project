@@ -4,7 +4,6 @@ import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
-import { isMainThread } from 'worker_threads';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   constructor(mainPlayerSpeedLR: number) {
@@ -41,9 +40,6 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
         `(parcel ${this.beliefSet.tileToPddl(this.beliefSet.getTile(parcel.x, parcel.y))})`
       );
     }
-    // pddlproblemcontext.predicates.push(
-    //   `(parcel ${this.beliefset.tiletopddl(this.beliefset.gettile(visibleparcels[0].x, visibleparcels[0].y))})`
-    // );
 
     // const oldConsoleLogFunction = console.log;
     // console.log = (...args) => {};

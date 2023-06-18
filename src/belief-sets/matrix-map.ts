@@ -309,6 +309,10 @@ class DeliverooMap {
 
         for (const neighbor of this.getNeighbors(current)) {
           predicates.push(`(can-move ${this.tileToPddl(current)} ${this.tileToPddl(neighbor)})`);
+
+          if (current.isMainPlayer) {
+            predicates.push(`(can-move ${this.tileToPddl(neighbor)} ${this.tileToPddl(current)})`);
+          }
         }
       }
     }

@@ -1,18 +1,8 @@
 import { PddlAction, PddlDomain, PddlExecutor, PddlProblem, onlineSolver } from '@unitn-asa/pddl-client';
-import fs from 'fs';
 
 export class PDDLProblemContext {
   public actions = [moveAction, pickupAction];
   constructor(public objects: string, public predicates: string[]) {}
-}
-
-function readFile(path: string): Promise<string> {
-  return new Promise((res, rej) => {
-    fs.readFile(path, 'utf8', (err, data) => {
-      if (err) rej(err);
-      else res(data);
-    });
-  });
 }
 
 const moveAction = new PddlAction(
@@ -29,12 +19,6 @@ const pickupAction = new PddlAction(
   'and (not (parcel ?position)) (carrying ?position)',
   async (position) => console.log('exec pickup parcel', position)
 );
-// const moveToValueAction = new PddlAction(
-//   'move-to-value',
-//   '?fr ?to',
-//   'and (at ?fr) (can-move ?fr ?to) (parcel ?to)',
-//   'and (at ?to) (carrying ?to) (not (parcel ?to))'
-// );
 
 export async function getPlan(context: PDDLProblemContext, goal: string) {
   console.log(context.actions);
