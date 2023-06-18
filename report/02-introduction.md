@@ -1,3 +1,0 @@
-\newpage
-# Introduction {#sec:introduction}
-

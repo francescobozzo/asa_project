@@ -1,12 +1,12 @@
 ---
-title: "Particle Swarm Optimization: a parallelized approach"
+title: "Autonomous Software Agents project"
 # author: [Bortolotti Samuele, Izzo Federico]
 author:
-  - name: Bortolotti Samuele, Izzo Federico
+  - name: Bozzo Francesco, Izzo Federico
     affiliation: University of Trento
     location: Trento, Italy
-    email: samuele.bortolotti@studenti.unitn.it, federico.izzo@studenti.unitn.it
-keywords: [ParticleSwarmOptimization, PSO, OpenMPI, OpenMP, C, Bio-Inspired, HPC, Parallelization]
+    email: francesco.bozzo@studenti.unitn.it, federico.izzo@studenti.unitn.it
+keywords: [Autonoumous Software Agents, A Star, Heuristic]
 numbersections: yes
 lang: en
 babel-lang: english
@@ -17,11 +17,4 @@ header-includes: |
   \usepackage{float}
   \renewcommand{\algorithmicforall}{\textbf{for each}}
 abstract: |
-  [*Particle Swarm Optimization*](https://doi.org/10.1109/ICNN.1995.488968) is an optimization algorithm for nonlinear functions based on bird swarms. It falls back into the sub-field of *Bio-Inspired Artificial Intelligence* and it was designed from a simplified social model inspired by the nature.
-
-  A key concept associated with PSO is the role of genetic algorithms and evolution, the functioning is based on several iterations that aim to identify the best possible position represented as a point in a landscape.
-
-  The goal of this project is to design a parallelized implementation capable of exploring the solution space in a faster way. This is done through the usage of two main libraries for *High-Performance Computing (HPC)*: *OpenMPI* and *OpenMP*.
-
-  The effectiveness of the proposed solution is tested using the HPC cluster of the University of Trento among other implementations found online.
 ...
