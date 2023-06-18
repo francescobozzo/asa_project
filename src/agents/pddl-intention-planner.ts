@@ -3,10 +3,12 @@ import log from 'loglevel';
 import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
-import AbstractIntentionPlanner from './abstract-intention-planner.js';
+import AbstractIntentionPlanner, { GoalType } from './abstract-intention-planner.js';
 import Agent from '../belief-sets/agent.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
+  private parcelsToPick: Parcel[] = [];
+
   constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number, useProbabilisticModel: boolean) {
     super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel);
   }
@@ -18,18 +20,18 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     return new PddlAction(
       'putdown',
       '?position',
-      `and (at ?position) (delivery ?position) ${parcelPDDLTiles.join(' ')}`,
+      `and (at ?position) (delivery ?position)${parcels.length > 0 ? ' ' + parcelPDDLTiles.join(' ') : ''}`,
       'and (delivered)',
       async (position) => console.log('exec putdown parcel', position)
     );
   }
 
-  computeNewPlan() {
+  protected isTimeForANewPlan(): boolean {
+    this.parcelsToPick = [];
     class ParcelPotentialScore {
       constructor(public parcel: Parcel, public potentialScore: number) {}
     }
 
-    const pddlProblemContext = this.beliefSet.toPddlDomain();
     const parcelsPotentialScoresToPick = this.beliefSet
       .getVisibleParcels()
       .concat(this.beliefSet.getNotVisibleParcels())
@@ -47,20 +49,28 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
       .sort((pp1, pp2) => pp2.potentialScore - pp1.potentialScore);
 
     let cumulativePotentialScore = 0;
-    const parcelsToPick = [];
     for (const pp of parcelsPotentialScoresToPick) {
       const realValue = pp.potentialScore - this.cumulatedCarriedPenaltyFactor * cumulativePotentialScore;
       if (realValue > 0) {
         cumulativePotentialScore += pp.potentialScore;
-        parcelsToPick.push(pp.parcel);
+        this.parcelsToPick.push(pp.parcel);
       }
     }
-    pddlProblemContext.actions.push(this.buildPDDLPutdownAction(parcelsToPick));
 
-    const goal = 'and (delivered)';
+    const isExploring = this.plan.length === 0 ? false : this.plan[this.plan.length - 1] !== Action.PUTDOWN;
+    return (isExploring && this.parcelsToPick.length > 0) || this.plan.length === 0;
+  }
+
+  computeNewPlan() {
+    const pddlProblemContext = this.beliefSet.toPddlDomain();
+    pddlProblemContext.actions.push(this.buildPDDLPutdownAction(this.parcelsToPick));
+    let goal = 'and (delivered)';
+    if (this.parcelsToPick.length === 0)
+      goal = `and (at ${this.beliefSet.tileToPddl(this.beliefSet.getRandomValidTile())})`;
+
     pddlProblemContext.predicates.push(`(at ${this.beliefSet.tileToPddl(this.beliefSet.getTile(this.x, this.y))})`);
 
-    for (const parcel of parcelsToPick) {
+    for (const parcel of this.parcelsToPick) {
       pddlProblemContext.predicates.push(
         `(parcel ${this.beliefSet.tileToPddl(this.beliefSet.getTile(parcel.x, parcel.y))})`
       );
@@ -90,7 +100,6 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
           }
         }
         this.plan = plan;
-        // console.log(plan);
       })
       .catch((error) => {
         log.debug("DEBUG: Couldn't generate a new pddl plan\n", error);

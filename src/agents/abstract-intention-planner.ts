@@ -58,7 +58,7 @@ abstract class AbstractIntentionPlanner {
     this.beliefSet.updateParcelsDecayEstimation();
     this.computeCarriedScore();
     this.setGoal();
-    if (this.plan.length === 0) {
+    if (this.isTimeForANewPlan()) {
       this.getNewPlan();
     }
   }
@@ -210,6 +210,10 @@ abstract class AbstractIntentionPlanner {
   protected computeParcelLossEstimation(distance: number) {
     const playerSpeedParcelCoefficient = this.mainPlayerSpeedEstimation / this.beliefSet.getParcelsDecayEstimation();
     return distance * playerSpeedParcelCoefficient;
+  }
+
+  protected isTimeForANewPlan(): boolean {
+    return this.plan.length === 0;
   }
 }
 
