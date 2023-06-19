@@ -8,7 +8,16 @@ Qui spiegerei le varie macroaree su cui abbiamo operato (senza spiegare le soluz
 - replan
 - cache
 
-## Problem parameters estimation
+## Manhattan distance
+The *Manhattan distance* is function that can provide a quick estimation of the distance between two points.
+
+$$
+d_{ab} = | b_x - a_x | + | b_y - a_y |
+$$
+
+In the deliveroo environment it is insufficient since many tiles can be non walkable, but at the same time it's fast heruistic to compute.
+
+## Problem parameters estimation 
 
 As explained in Section {@sec:deliveroo}, multiple parameters can be modified during the game initialization. Some of them are given to the agent, others are obscure and can be only estimated using different solutions. We mainly focused on the estimation of player speed and parcel decay for a more accurate computation of the potential reward associated to a given parcel.
 
@@ -68,3 +77,36 @@ Another important parameter for the correct definition of an agent is the parcel
 \end{algorithm}
 
 The learning rate $\phi_2$ can be used to regulate the impact of the contribution with respect to the current parcel decay estimation.
+
+## Probabilisitic model {#sec:probabilistic-model}
+In the environment there may be multiples competitive agents, their ability of picking up parcels highly infuences the value of a parcel. For this reason we have devised a penalty value based on a probabilistic model capable of takimg into the consideration the possible opponents' plans.
+
+The main idea behind the probabilistic model is the following assertion: if there is a parcel and I am the closest agent I can reach it faster than any other agents, consequentially that parcel should be taken more into consideration, even if its value is lower than other further parcels.
+
+This assertion can be modeled as follow
+
+$$
+\text{penalty probability} = \sum_{a \in \mathcal{A}} \frac{d_{max} - d_{pa}}{d_{max}}
+$$
+
+with $\mathcal{A}$ the set of opponent agents, $d_{max}$ the maximum distance betweent the parcel and the union between oppoents agents, main player, and cooperative agents, $d_{pa}$ the distance parcel oppenent agent.
+
+
+## Potential parcel score
+The decision process behind the choice of a parcel is one of the key elements for the definition of a good agent. Many elements and metrics have been taken into consideration to better estimate the potential gain of a parcel. The final reward is computed as:
+
+$$
+r_f = r - \left (d_{ap} * \frac{s_a}{decay}\right ) - \left (d_{min} * \frac{s_a}{decay}\right ) - r * \text{penalty probability}
+$$
+
+where $d_{ap}$ is the distance between the agent and the parcel, $s_a$ is the estimatated speed, $d_{min}$ is the minimum distance between the parcel and any delivery zone, and $\text{penalty probability}$ is the probability computed on Section {@sec:probabilistic-model}.
+
+The resulting formula takes into reward the lost of approaching the parcel and delivery it to the closest delivery zone, moreover the probabilistic model can provide a rough estimation of other agents' intentions.
+
+## Distances cache
+A distance cache was maintained to save some computational power, every time a plan is computed the distance between the starting point and any other tile in the path is saved in the cache.
+
+The cache is then used in many parts of the code.
+
+## Replan
+Qui non so se per ora il replan dopo 5 tentativi sia interessante da menzionare.
