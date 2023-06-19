@@ -151,11 +151,12 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
       }
     }
 
-    let probability = 0.5;
+    let probability = 0;
     for (const [agent, distance] of agentDistances) {
       agentProbabilities.set(agent, (maxDistance - distance) / maxDistance);
       probability += (maxDistance - distance) / maxDistance;
     }
+    probability /= agentDistances.size;
     return parcel.reward * probability;
   }
 }
