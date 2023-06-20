@@ -16,3 +16,18 @@ pandoc $files \
     --listings \
     --number-sections \
     --highlight-style pygments
+pandoc $files \
+	-o ../two-columns-report.pdf \
+	-V fontsize=9pt \
+	--from markdown \
+	--template ./pandoc-template/ieee-template.latex \
+	--metadata-file ./pandoc-template/ieee-metadata.yaml \
+	--bibliography=./pandoc-template/bibliography.bib \
+	--csl=./pandoc-template/bibliography.csl \
+	--filter pandoc-fignos \
+	--filter pandoc-eqnos \
+	--filter pandoc-secnos \
+	--citeproc \
+	--listings \
+	--number-sections \
+	--highlight-style pygments

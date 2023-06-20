@@ -1,5 +1,4 @@
-\newpage
-# Conclusion
+# Conclusion {#sec:conclusion}
 
 \newpage
 # References

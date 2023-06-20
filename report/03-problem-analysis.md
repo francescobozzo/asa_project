@@ -1,14 +1,7 @@
-\newpage
-# Problem Analysis
-Qui spiegerei le varie macroaree su cui abbiamo operato (senza spiegare le soluzioni adottate):
+# Problem Analysis {#sec:problem-analysis}
+Given the complexity of the environment several solutions have been implemented to overcome different difficulties and challenges.
 
-- decay stimato
-- propabilistic model
-- parcel value discounted
-- replan
-- cache
-
-## Manhattan distance
+## Manhattan distance {#sec:manhattan-distance}
 The *Manhattan distance* is function that can provide a quick estimation of the distance between two points.
 
 $$
@@ -17,11 +10,12 @@ $$
 
 In the deliveroo environment it is insufficient since many tiles can be non walkable, but at the same time it's fast heruistic to compute.
 
-## Problem parameters estimation 
+## Problem parameters estimation {#sec:problem-parameters-estimation}
 
-As explained in Section {@sec:deliveroo}, multiple parameters can be modified during the game initialization. Some of them are given to the agent, others are obscure and can be only estimated using different solutions. We mainly focused on the estimation of player speed and parcel decay for a more accurate computation of the potential reward associated to a given parcel.
+As explained in Section {@sec:deliveroo}, multiple parameters can be modified during the game initialization. Some of them are given to the agent, others are obscure and can be only estimated. We mainly focused on the estimation of player speed and parcel decay for a more accurate computation of the potential reward associated to a given parcel.
 
-### Player speed
+
+### Player speed {#sec:player-speed}
 Each time the agent moves the new position is communicated by the environment to the agent, we have decided to keep track of the timestamp in which the information is perceived. The list of timestamps can then be used to estimate the player velocity using the following algorithm:
 
 \begin{algorithm}[H]
@@ -43,7 +37,7 @@ Each time the agent moves the new position is communicated by the environment to
 
 The hyper-parameter $\phi$ is the learning rate that can be used to regulate the impact of the contribution with respect to the current speed estimation.
 
-### Parcel decay
+### Parcel decay {#sec:parcel-decay}
 Another important parameter for the correct definition of an agent is the parcel decay, it is the number velelocity of the reward decrease. Similarly to the player speed estimation, the parcel decay estimation is computed from timestamp differences, where a timestamp is associated to an update of a visible parcel.
 
 \begin{algorithm}[H]
@@ -79,20 +73,20 @@ Another important parameter for the correct definition of an agent is the parcel
 The learning rate $\phi_2$ can be used to regulate the impact of the contribution with respect to the current parcel decay estimation.
 
 ## Probabilisitic model {#sec:probabilistic-model}
-In the environment there may be multiples competitive agents, their ability of picking up parcels highly infuences the value of a parcel. For this reason we have devised a penalty value based on a probabilistic model capable of takimg into the consideration the possible opponents' plans.
+In the environment there may be multiples competitive agents, their ability of picking up parcels highly infuences the value of a parcel. For this reason we have devised a penalty value based on a probabilistic model capable of takimg into consideration the possible opponents' plans.
 
 The main idea behind the probabilistic model is the following assertion: if there is a parcel and I am the closest agent I can reach it faster than any other agents, consequentially that parcel should be taken more into consideration, even if its value is lower than other further parcels.
 
 This assertion can be modeled as follow
 
 $$
-\text{penalty probability} = \sum_{a \in \mathcal{A}} \frac{d_{max} - d_{pa}}{d_{max}}
+\text{penalty probability} = \frac{\sum_{a \in \mathcal{A}} \frac{d_{max} - d_{pa}}{d_{max}}}{|A|}
 $$
 
 with $\mathcal{A}$ the set of opponent agents, $d_{max}$ the maximum distance betweent the parcel and the union between oppoents agents, main player, and cooperative agents, $d_{pa}$ the distance parcel oppenent agent.
 
 
-## Potential parcel score
+## Potential parcel score {#sec:potential-parcel-score}
 The decision process behind the choice of a parcel is one of the key elements for the definition of a good agent. Many elements and metrics have been taken into consideration to better estimate the potential gain of a parcel. The final reward is computed as:
 
 $$
@@ -103,10 +97,10 @@ where $d_{ap}$ is the distance between the agent and the parcel, $s_a$ is the es
 
 The resulting formula takes into reward the lost of approaching the parcel and delivery it to the closest delivery zone, moreover the probabilistic model can provide a rough estimation of other agents' intentions.
 
-## Distances cache
+## Distances cache {#sec:distance-cache}
 A distance cache was maintained to save some computational power, every time a plan is computed the distance between the starting point and any other tile in the path is saved in the cache.
 
 The cache is then used in many parts of the code.
 
-## Replan
+## Replan {#sec:replan}
 Qui non so se per ora il replan dopo 5 tentativi sia interessante da menzionare.

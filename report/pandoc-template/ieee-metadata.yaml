@@ -6,7 +6,7 @@ author:
     affiliation: University of Trento
     location: Trento, Italy
     email: francesco.bozzo@studenti.unitn.it, federico.izzo@studenti.unitn.it
-keywords: [Autonoumous Software Agents, A Star, Heuristic]
+keywords: [Autonoumous Software Agents, Single-agent, Multi-agent, BDI, A Star, Heuristic]
 numbersections: yes
 lang: en
 babel-lang: english

@@ -1,7 +1,7 @@
 title: "Autonomous Software Agents project"
 author: [Bozzo Francesco, Izzo Federico]
 date: "2023-07-11"
-keywords: [Autonoumous Software Agents, A Star, Heuristic]
+keywords: [Autonoumous Software Agents, Single-agent, Multi-agent, BDI, A Star, Heuristic]
 titlepage: true
 titlepage-rule-color: "4c566a"
 titlepage-rule-height: 2
