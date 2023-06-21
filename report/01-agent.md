@@ -11,7 +11,7 @@ Another fundamental characteristic of an agent is its autonomy, the internal "br
 Finally an agent can be designed to solve tasks or goals. When we talk about tasks we mean small objectives that must be completed to achieve the final bigger goal. On the other hand we have a goal agent, it takes the goal and it has to define autonomously a list of tasks to fulfill the assigned goal.
 
 ## Multi-agent system {#sec:multi-agent-system}
-A mutli-agent system, as suggested by the name, is a group of agents placed in same environment. There are two main type of interactions: cooperative and competitive. During this project we will focus on both of them in several stages of the development.
+A multi-agent system, as suggested by the name, is a group of agents placed in same environment. There are two main type of interactions: *cooperative* and *competitive*. During this project we will focus on both of them in several stages of the development.
 
 A competitive system is composed of many agents acting against each other, the goal can be divided into to sub-goals, maximizing the personal reward and minimize the oppenents' ones.
 
