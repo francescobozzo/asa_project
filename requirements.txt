@@ -1,0 +1,6 @@
+pandoc-eqnos==2.5.0
+pandoc-fignos==2.4.0
+pandoc-secnos==2.2.2
+pandoc-xnos==2.5.0
+pandocfilters==1.5.0
+psutil==5.9.5
