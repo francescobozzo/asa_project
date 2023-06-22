@@ -108,3 +108,4 @@ dist
 
 #python
 .venv
+.ipynb_checkpoints
