@@ -6,6 +6,7 @@ export enum MessageType {
   INFORM = 'inform',
   REQUEST = 'request',
   ACKNOWLEDGE = 'acknowledge',
+  INTENTION = 'intention',
 }
 
 class Message {
@@ -32,6 +33,10 @@ class Message {
             new Parcel(parcelRaw.id, parcelRaw.x, parcelRaw.y, parcelRaw.carriedBy, parcelRaw.reward, false)
         )
       : [];
+  }
+
+  getParcelIdsIntention(): string[] {
+    return this.payload.parcelIds ?? [];
   }
 }
 

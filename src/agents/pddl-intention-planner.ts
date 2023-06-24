@@ -7,8 +7,7 @@ import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.j
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
-  private parcelsToPick: Parcel[] = [];
-
+  private isComputing: boolean = false;
   constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number, useProbabilisticModel: boolean) {
     super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel);
   }
@@ -27,6 +26,10 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
   }
 
   protected isTimeForANewPlan(): boolean {
+    if (this.isComputing) {
+      return false;
+    }
+
     this.parcelsToPick = [];
     class ParcelPotentialScore {
       constructor(public parcel: Parcel, public potentialScore: number) {}
@@ -51,7 +54,7 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     let cumulativePotentialScore = 0;
     for (const pp of parcelsPotentialScoresToPick) {
       const realValue = pp.potentialScore - this.cumulatedCarriedPenaltyFactor * cumulativePotentialScore;
-      if (realValue > 0) {
+      if (realValue > 0 && !this.beliefSet.parcelsToAvoidIds.has(pp.parcel.id)) {
         cumulativePotentialScore += pp.potentialScore;
         this.parcelsToPick.push(pp.parcel);
       }
@@ -62,6 +65,11 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
   }
 
   computeNewPlan() {
+    if (this.isComputing) {
+      return [];
+    }
+    this.isComputing = true;
+
     const pddlProblemContext = this.beliefSet.toPddlDomain();
     pddlProblemContext.actions.push(this.buildPDDLPutdownAction(this.parcelsToPick));
     let goal = 'and (delivered)';
@@ -103,8 +111,13 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
       })
       .catch((error) => {
         log.debug("DEBUG: Couldn't generate a new pddl plan\n", error);
+      })
+      .finally(() => {
+        this.isComputing = false;
       });
     // console.log = oldConsoleLogFunction;
+
+    return this.parcelsToPick;
   }
 
   potentialScore(startX: number, startY: number, endX: number, endY: number): number {

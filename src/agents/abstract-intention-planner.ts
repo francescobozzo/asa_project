@@ -1,5 +1,6 @@
 import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
+import Parcel from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
 import { Action, arrayAverage } from '../belief-sets/utils.js';
 
@@ -34,6 +35,7 @@ abstract class AbstractIntentionPlanner {
   protected distanceCache = new Map<string, number>();
   protected cumulatedCarriedPenaltyFactor: number;
   protected useProbabilisticModel: boolean = false;
+  protected parcelsToPick: Parcel[] = [];
 
   constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number, useProbabilisticModel: boolean) {
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
@@ -59,8 +61,10 @@ abstract class AbstractIntentionPlanner {
     this.computeCarriedScore();
     this.setGoal();
     if (this.isTimeForANewPlan()) {
-      this.getNewPlan();
+      return this.getNewPlan();
     }
+
+    return [];
   }
 
   updateMe(id: string, name: string, x: number, y: number, score: number) {
@@ -88,9 +92,10 @@ abstract class AbstractIntentionPlanner {
         // if you are on a parcel take it no matter what is your current plan
         this.plan = [Action.PICKUP];
       } else if (this.goal) {
-        this.computeNewPlan();
+        return this.computeNewPlan();
       }
     }
+    return [];
   }
 
   getNextAction() {

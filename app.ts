@@ -50,9 +50,9 @@ if (Config.SenseAgents)
 if (Config.SenseParcels)
   client.socket.on('parcels sensing', async (parcels) => {
     if (agent.beliefSet !== null) {
-      agent.beliefSet.print();
-      agent.parcelSensingHandler(parcels);
-      if (Config.MultiAgent)
+      const parcelsToPick = agent.parcelSensingHandler(parcels);
+
+      if (Config.MultiAgent) {
         client.shout(
           MessageFactory.createInformParcelMessage(
             agent.id,
@@ -60,6 +60,17 @@ if (Config.SenseParcels)
             agent.beliefSet.getVisibleParcels()
           )
         );
+
+        if (parcelsToPick.length > 0) {
+          client.shout(
+            MessageFactory.createParcelsIntentionMessage(
+              agent.id,
+              agent.beliefSet.getTile(agent.x, agent.y),
+              parcelsToPick.map((parcel) => parcel.id)
+            )
+          );
+        }
+      }
     }
   });
 
@@ -83,6 +94,12 @@ if (Config.MultiAgent) {
         agent.beliefSet.updateParcelsFromMessagePayload(parcels);
         agent.beliefSet.updateAgentsFromMessagePayload(agents);
         break;
+      case MessageType.INTENTION:
+        for (const parcelId of message.getParcelIdsIntention()) {
+          agent.beliefSet.parcelsToAvoidIds.add(parcelId);
+        }
+
+        break;
     }
   });
 }
@@ -93,7 +110,16 @@ const agentDoAction = async () => {
   if (Config.TakeActions && !actionInProgress) {
     if (actionErrors >= Config.ActionErrorPatience) {
       agent.setGoal();
-      agent.computeNewPlan();
+      const parcelsToPick = agent.computeNewPlan();
+      if (parcelsToPick.length > 0) {
+        client.shout(
+          MessageFactory.createParcelsIntentionMessage(
+            agent.id,
+            agent.beliefSet.getTile(agent.x, agent.y),
+            parcelsToPick.map((parcel) => parcel.id)
+          )
+        );
+      }
       actionErrors = 0;
     }
 

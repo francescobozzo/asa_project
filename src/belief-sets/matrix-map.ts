@@ -18,6 +18,7 @@ class DeliverooMap {
   public notVisibleParcelIds = new Set<string>();
   private parcelDecayLR: number;
   private parcelsDecayEstimation: number = 1;
+  public parcelsToAvoidIds = new Set<string>();
 
   constructor(width: number, height: number, sensedTiles: any, parcelDecayLR: number) {
     this.createMap(width, height, sensedTiles);
@@ -68,9 +69,10 @@ class DeliverooMap {
         this.parcels.delete(parcelId);
         this.notVisibleParcelIds.delete(parcelId);
         this.visibleParcelIds.delete(parcelId);
+        this.parcelsToAvoidIds.delete(parcelId);
       }
     }
-    this.print();
+    // this.print();
 
     return newNotVisible.size !== 0;
   }

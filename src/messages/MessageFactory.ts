@@ -8,6 +8,10 @@ class MessageFactory {
     return new Message(MessageType.INFORM, id, position, new Date().toISOString(), {});
   }
 
+  static createIntentionMessage(id: string, position: Tile) {
+    return new Message(MessageType.INTENTION, id, position, new Date().toISOString(), {});
+  }
+
   static createInformParcelMessage(id: string, position: Tile, parcels: Parcel[]) {
     const message = MessageFactory.createInformMessage(id, position);
     message.payload = { parcels };
@@ -17,6 +21,12 @@ class MessageFactory {
   static createInformAgentMessage(id: string, position: Tile, agents: Agent[]) {
     const message = MessageFactory.createInformMessage(id, position);
     message.payload = { agents };
+    return message;
+  }
+
+  static createParcelsIntentionMessage(id: string, position: Tile, parcelIds: string[]) {
+    const message = MessageFactory.createIntentionMessage(id, position);
+    message.payload = { parcelIds };
     return message;
   }
 }
