@@ -2,7 +2,10 @@ import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import log from 'loglevel';
 import Config from './config.js';
 import DeliverooMap from './src/belief-sets/matrix-map.js';
+import Tile from './src/belief-sets/tile.js';
 import { Action } from './src/belief-sets/utils.js';
+import Message, { MessageType } from './src/messages/Message.js';
+import MessageFactory from './src/messages/MessageFactory.js';
 
 const BrainClass = Config.Brain;
 log.info(`INFO : sense you ${Config.SenseYou}`);
@@ -31,15 +34,58 @@ if (Config.SenseYou)
 
 if (Config.SenseAgents)
   client.socket.on('agents sensing', (agents: any) => {
-    if (agent.beliefSet !== null) agent.agentsSensingHandler(agents);
+    if (agent.beliefSet !== null) {
+      agent.agentsSensingHandler(agents);
+      if (Config.MultiAgent)
+        client.shout(
+          MessageFactory.createInformAgentMessage(
+            agent.id,
+            agent.beliefSet.getTile(agent.x, agent.y),
+            Array.from(agent.beliefSet.getAgents().values())
+          )
+        );
+    }
   });
 
 if (Config.SenseParcels)
   client.socket.on('parcels sensing', async (parcels) => {
     if (agent.beliefSet !== null) {
+      agent.beliefSet.print();
       agent.parcelSensingHandler(parcels);
+      if (Config.MultiAgent)
+        client.shout(
+          MessageFactory.createInformParcelMessage(
+            agent.id,
+            agent.beliefSet.getTile(agent.x, agent.y),
+            agent.beliefSet.getVisibleParcels()
+          )
+        );
     }
   });
+
+if (Config.MultiAgent) {
+  client.socket.on('msg', (id: string, name: string, messageRaw: any, reply) => {
+    const message = new Message(
+      messageRaw.type,
+      messageRaw.sender,
+      new Tile(messageRaw.senderPosition.x, messageRaw.senderPosition.y),
+      messageRaw.timestamp,
+      messageRaw.payload
+    );
+
+    agent.beliefSet.updateAgentsFromMessageSender(message.senderId, name, message.senderPosition);
+
+    switch (message.type) {
+      case MessageType.INFORM:
+        const parcels = message.getInfoParcels();
+        const agents = message.getInfoAgents();
+
+        agent.beliefSet.updateParcelsFromMessagePayload(parcels);
+        agent.beliefSet.updateAgentsFromMessagePayload(agents);
+        break;
+    }
+  });
+}
 
 let actionInProgress = false;
 let actionErrors = 0;
@@ -81,7 +127,7 @@ const agentDoAction = async () => {
     actionInProgress = false;
   }
 };
-// console.log(Config.AgentClock);
+
 setInterval(agentDoAction, Config.AgentClock);
 
 // update not visible parcels value using a sort of dynamic set interval
@@ -93,6 +139,16 @@ var updateValueNotVisibleParcels = function () {
 
       if (!agent.beliefSet.getTile(parcel.x, parcel.y).isDelivery)
         agent.beliefSet.setTileValue(parcel.x, parcel.y, parcel.reward);
+    }
+
+    const parcelsIdToDelete: string[] = (Array.from(agent.beliefSet.getParcels().keys()) as string[]).filter(
+      (parcelId) =>
+        !agent.beliefSet.notVisibleParcelIds.has(parcelId) && !agent.beliefSet.visibleParcelIds.has(parcelId)
+    );
+    for (const parcelId of parcelsIdToDelete) {
+      const parcel = agent.beliefSet.parcels.get(parcelId);
+      agent.beliefSet.setTileValue(parcel.x, parcel.y, 0);
+      agent.beliefSet.parcels.delete(parcelId);
     }
   }
   setTimeout(updateValueNotVisibleParcels, agent.beliefSet?.getParcelsDecayEstimation() * 1000 ?? 1000);

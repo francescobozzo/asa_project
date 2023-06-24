@@ -1,10 +1,10 @@
 import { PddlAction } from '@unitn-asa/pddl-client';
 import log from 'loglevel';
+import Agent from '../belief-sets/agent.js';
 import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
-import AbstractIntentionPlanner, { GoalType } from './abstract-intention-planner.js';
-import Agent from '../belief-sets/agent.js';
+import AbstractIntentionPlanner from './abstract-intention-planner.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   private parcelsToPick: Parcel[] = [];
@@ -123,8 +123,13 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
         minimumDistance = currentDistance;
       }
     }
+
+    const parcelsReward = Array.from(this.beliefSet.parcels.values())
+      .filter((parcel) => parcel.x === endX && parcel.y === endY && parcel.carriedBy == null)
+      .reduce((sum, current) => sum + current.reward, 0);
+
     return (
-      this.beliefSet.getTile(endX, endY).value -
+      parcelsReward -
       this.computeParcelLossEstimation(
         this.distanceCache.get(keyDistanceCache) ??
           ManhattanDistance(this.beliefSet.getTile(startX, startY), this.beliefSet.getTile(endX, endY))

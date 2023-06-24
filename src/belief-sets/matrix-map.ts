@@ -13,9 +13,9 @@ class DeliverooMap {
   private agents = new Map<string, Agent>();
   private visibleAgentIds = new Set<string>();
   private notVisibleAgentIds = new Set<string>();
-  private parcels = new Map<string, Parcel>();
-  private visibleParcelIds = new Set<string>();
-  private notVisibleParcelIds = new Set<string>();
+  public parcels = new Map<string, Parcel>();
+  public visibleParcelIds = new Set<string>();
+  public notVisibleParcelIds = new Set<string>();
   private parcelDecayLR: number;
   private parcelsDecayEstimation: number = 1;
 
@@ -70,9 +70,48 @@ class DeliverooMap {
         this.visibleParcelIds.delete(parcelId);
       }
     }
-    // this.print();
+    this.print();
 
     return newNotVisible.size !== 0;
+  }
+
+  updateParcelsFromMessagePayload(parcels: Parcel[]) {
+    for (const parcel of parcels) {
+      if (this.visibleParcelIds.has(parcel.id)) continue;
+
+      if (this.notVisibleParcelIds.has(parcel.id)) {
+        this.parcels.get(parcel.id).update(parcel.x, parcel.y, parcel.carriedBy, parcel.reward, false);
+        this.notVisibleParcelIds.add(parcel.id);
+      } else {
+        this.parcels.set(parcel.id, parcel);
+        this.notVisibleParcelIds.add(parcel.id);
+      }
+    }
+  }
+
+  updateAgentsFromMessagePayload(agents: Agent[]) {
+    for (const agent of agents) {
+      if (this.visibleAgentIds.has(agent.id)) continue;
+
+      if (this.notVisibleAgentIds.has(agent.id)) {
+        this.agents.get(agent.id).update(agent.x, agent.y, agent.score, false);
+      } else {
+        this.agents.set(agent.id, agent);
+        this.notVisibleAgentIds.add(agent.id);
+      }
+    }
+  }
+
+  updateAgentsFromMessageSender(senderId: string, senderName: string, senderPosition: Tile) {
+    if (!this.agents.has(senderId)) {
+      this.notVisibleAgentIds.add(senderId);
+      this.agents.set(senderId, new Agent(senderId, senderName, senderPosition.x, senderPosition.y, 0, false));
+    } else {
+      const previousAgent = this.agents.get(senderId);
+      previousAgent.x = senderPosition.x;
+      previousAgent.y = senderPosition.y;
+      this.agents.set(senderId, previousAgent);
+    }
   }
 
   updateParcelsDecayEstimation() {
@@ -181,22 +220,6 @@ class DeliverooMap {
     tile.isOccupied = false;
     tile.isMainPlayer = false;
     log.debug(`DEBUG: freeTile: ${roundX},${roundY}`);
-  }
-
-  addTileValue(x: number, y: number, value: number) {
-    const { roundX, roundY } = this.roundTileCoordinates(x, y);
-    const tile = this.map[roundX][roundY];
-    tile.hasParcel = true;
-    tile.value += value;
-    log.debug(`DEBUG: addTileValue: ${roundX},${roundY} ${tile.value}`);
-  }
-
-  removeTileValue(x: number, y: number, value: number) {
-    const { roundX, roundY } = this.roundTileCoordinates(x, y);
-    const tile = this.map[roundX][roundY];
-    if (tile.hasParcel) tile.value -= value;
-    tile.hasParcel = false;
-    log.debug(`DEBUG: removeTileValue: ${roundX},${roundY} ${tile.value}`);
   }
 
   setTileValue(x: number, y: number, value: number) {
@@ -342,18 +365,6 @@ class DeliverooMap {
         }
       }
     }
-
-    // for (let i = 0; i < height; i++) {
-    //   const width = this.map[i].length;
-
-    //   for (let j = 0; j < width; j++) {
-    //     const current = this.map[i][j];
-    //     if (current.hasParcel) {
-    //       predicates.push(`(parcel ${this.tileToPddl(current)})`);
-    //     }
-    //   }
-    // }
-    console.log('Got pddl domain');
 
     const objects = tileObjects.join(' ');
     return new PDDLProblemContext(objects, predicates);

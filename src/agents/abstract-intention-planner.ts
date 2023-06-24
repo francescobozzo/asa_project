@@ -95,7 +95,12 @@ abstract class AbstractIntentionPlanner {
 
   getNextAction() {
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.plan.length > 0) {
-      if (this.beliefSet.getTile(this.x, this.y).hasParcel) this.plan.unshift(Action.PICKUP);
+      const parcelsReward = Array.from(this.beliefSet.parcels.values())
+        .filter((parcel) => parcel.x === this.x && parcel.y === this.y && parcel.carriedBy == null)
+        .reduce((sum, current) => sum + current.reward, 0);
+
+      if (parcelsReward > 0) this.plan.unshift(Action.PICKUP);
+
       if (this.beliefSet.getTile(this.x, this.y).isDelivery && this.carriedScore > 0) this.plan.unshift(Action.PUTDOWN);
       return this.plan[0];
     }
