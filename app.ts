@@ -93,7 +93,7 @@ if (Config.SenseParcels)
   });
 
 if (Config.MultiAgentLeaderVersion || Config.MultiAgentDistributedVersion) {
-  client.socket.on('msg', (id: string, name: string, messageRaw: any, reply) => {
+  client.socket.on('msg', async (id: string, name: string, messageRaw: any, reply) => {
     console.log(messageRaw);
     const message = new Message(
       messageRaw.type,
@@ -127,9 +127,11 @@ if (Config.MultiAgentLeaderVersion || Config.MultiAgentDistributedVersion) {
         agent.leaderId = message.senderId;
         break;
       case MessageType.ASKFORPLAN:
+        agent.addNewPlanner(message.senderId);
+        const askedPlan = await agent.getPlanFromPlanner(message.senderId);
         client.say(
           message.senderId,
-          MessageFactory.createPlanMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y), [Action.RIGHT])
+          MessageFactory.createPlanMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y), askedPlan)
         );
         break;
       case MessageType.PLAN:
@@ -149,7 +151,7 @@ const agentDoAction = async () => {
 
     if (actionErrors >= Config.ActionErrorPatience) {
       agent.setGoal();
-      const parcelsToPick = agent.computeNewPlan();
+      const parcelsToPick = agent.getNewPlan();
       if (Config.MultiAgentDistributedVersion && parcelsToPick && parcelsToPick.length > 0) {
         client.shout(
           MessageFactory.createParcelsIntentionMessage(

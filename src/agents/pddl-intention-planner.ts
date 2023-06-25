@@ -6,9 +6,11 @@ import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
+import { PDDLPlanPlanner, Planner } from '../belief-sets/pddl-planner.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   private isComputing: boolean = false;
+
   constructor(
     mainPlayerSpeedLR: number,
     cumulatedCarriedPenaltyFactor: number,
@@ -17,6 +19,54 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     client: DeliverooApi
   ) {
     super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel, isMultiAgentLeaderVersion, client);
+  }
+
+  async getPlanFromPlanner(agentId: string) {
+    const pddlProblemContext = this.beliefSet.toPddlDomain();
+
+    const parcels = this.beliefSet
+      .getVisibleParcels()
+      .concat(this.beliefSet.getNotVisibleParcels())
+      .filter((parcel) => !this.beliefSet.parcelsToAvoidIds.has(parcel.id));
+    const planPlanner = this.agentToPlanner
+      .get(agentId)
+      .compute(
+        pddlProblemContext,
+        parcels,
+        Array.from(this.beliefSet.getAgents().values()),
+        this.mainPlayerSpeedEstimation,
+        this.beliefSet.getParcelsDecayEstimation(),
+        this.beliefSet.getRandomValidTile()
+      );
+    try {
+      const newPddlPlan = await planPlanner.getPlan;
+      const plan: Action[] = [];
+      let i = 0;
+      let firstTile = newPddlPlan.length > 0 ? newPddlPlan[0].args[0] : undefined;
+      for (const step of newPddlPlan) {
+        // TODO: handle parallel operations
+        if (step.action === 'move') {
+          plan.push(computeAction(this.beliefSet.pddlToTile(step.args[0]), this.beliefSet.pddlToTile(step.args[1])));
+          i += 1;
+          const keyDistanceCache = firstTile + step.args[1];
+          if (!this.distanceCache.has(keyDistanceCache) || i < this.distanceCache.get(keyDistanceCache)) {
+            this.distanceCache.set(keyDistanceCache, i);
+            this.distanceCache.set(step.args[1] + firstTile, i);
+          }
+        } else if (step.action === 'pickup') {
+          plan.push(Action.PICKUP);
+        } else if (step.action === 'putdown') {
+          plan.push(Action.PUTDOWN);
+        }
+      }
+      for (const p of planPlanner.parcels) {
+        this.beliefSet.parcelsToAvoidIds.add(p.id);
+      }
+      return plan;
+    } catch (error) {
+      log.error(`DEBUG: Couldn't generate a new pddl plan for agent ${agentId} \n`, error);
+    }
+    return [];
   }
 
   private buildPDDLPutdownAction(parcels: Parcel[]) {

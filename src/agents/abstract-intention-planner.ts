@@ -5,6 +5,8 @@ import Parcel from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
 import { Action, arrayAverage } from '../belief-sets/utils.js';
 import MessageFactory from '../messages/MessageFactory.js';
+import { PDDLPlanPlanner, Planner } from '../belief-sets/pddl-planner.js';
+import { getPlan } from '../belief-sets/pddl.js';
 
 export enum GoalType {
   PARCEL = 'parcel',
@@ -32,7 +34,7 @@ abstract class AbstractIntentionPlanner {
   protected goal: Goal;
   private modifiedAt: Date[] = [];
   private mainPlayerSpeedLR: number;
-  private mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
+  protected mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
   protected plan: Action[] = [];
   protected distanceCache = new Map<string, number>();
   protected cumulatedCarriedPenaltyFactor: number;
@@ -42,6 +44,7 @@ abstract class AbstractIntentionPlanner {
   protected client: DeliverooApi;
   public leaderId: string;
   public isAskingForANewPlan = false;
+  public agentToPlanner = new Map<string, Planner>();
 
   constructor(
     mainPlayerSpeedLR: number,
@@ -110,8 +113,9 @@ abstract class AbstractIntentionPlanner {
           this.leaderId,
           MessageFactory.createAskForPlanMessage(this.id, this.beliefSet.getTile(this.x, this.y))
         );
-      } else if (this.isMultiAgentLeaderVersion && this.leaderId && this.leaderId !== this.id) {
+      } else if (this.isMultiAgentLeaderVersion && this.leaderId && this.leaderId === this.id) {
         // I am the leader, I can compute my plan myself
+        return this.computeNewPlan();
       } else if (this.goal && !this.isMultiAgentLeaderVersion) {
         return this.computeNewPlan();
       }
@@ -245,6 +249,25 @@ abstract class AbstractIntentionPlanner {
 
   protected isTimeForANewPlan(): boolean {
     return this.plan.length === 0;
+  }
+
+  addNewPlanner(agentId: string) {
+    if (!this.agentToPlanner.has(agentId)) {
+      this.agentToPlanner.set(
+        agentId,
+        new Planner(
+          this.beliefSet.getAgents().get(agentId),
+          this.useProbabilisticModel,
+          this.distanceCache,
+          this.beliefSet.deliveryStations,
+          this.cumulatedCarriedPenaltyFactor
+        )
+      );
+    }
+  }
+
+  async getPlanFromPlanner(agentId: string) {
+    return undefined;
   }
 }
 
