@@ -150,7 +150,7 @@ abstract class AbstractIntentionPlanner {
     const parcels = this.beliefSet.getParcels();
     // the player has at least one parcel
     if (this.carriedScore > 0 && !this.isGoalADeliveryStation()) {
-      let maxPotentialScore = 0;
+      let maxPotentialScore = -Number.MAX_VALUE;
       let bestDeliveryStation = null;
       for (const deliveryStation of this.beliefSet.deliveryStations)
         if (!deliveryStation.isOccupied) {
