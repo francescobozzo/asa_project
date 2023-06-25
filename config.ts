@@ -59,4 +59,7 @@ export default {
   CumulatedCarriedPenaltyFactor: parseFloat(process.env.CUMULATED_CARRIED_PENALTY_FACTOR) ?? 0.15,
   UseProbabilisticModel: process.env.USE_PROBABILISTIC_MODEL ? process.env.USE_PROBABILISTIC_MODEL === 'true' : false,
   MultiAgent: process.env.MULTI_AGENT ? process.env.MULTI_AGENT === 'true' : true,
+  MultiAgentLeaderVersion: process.env.MULTI_AGENT_LEADER_VERSION
+    ? process.env.MULTI_AGENT_LEADER_VERSION === 'true'
+    : true,
 };

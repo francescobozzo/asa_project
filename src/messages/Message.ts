@@ -7,6 +7,8 @@ export enum MessageType {
   REQUEST = 'request',
   ACKNOWLEDGE = 'acknowledge',
   INTENTION = 'intention',
+  LEADER = 'leader',
+  ASKFORLEADER = 'askforleader',
 }
 
 class Message {

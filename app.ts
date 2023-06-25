@@ -23,6 +23,9 @@ const agent = new BrainClass(
   Config.CumulatedCarriedPenaltyFactor,
   Config.UseProbabilisticModel
 );
+let isLeaderInitialised = false;
+let leaderId: string = undefined;
+
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles, Config.ParcelDecayLearningRate);
 });
@@ -30,6 +33,19 @@ client.socket.on('map', (width: number, height: number, tiles: any) => {
 if (Config.SenseYou)
   client.socket.on('you', (me: any) => {
     if (agent.beliefSet !== null) agent.updateMe(me.id, me.name, me.x, me.y, me.score);
+
+    if (!isLeaderInitialised && Config.MultiAgent && Config.MultiAgentLeaderVersion) {
+      isLeaderInitialised = true;
+
+      client.shout(MessageFactory.createAskForLeaderMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y)));
+
+      setTimeout(() => {
+        if (!leaderId) {
+          leaderId = agent.id;
+          client.shout(MessageFactory.createLeaderMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y)));
+        }
+      }, 5000);
+    }
   });
 
 if (Config.SenseAgents)
@@ -78,7 +94,7 @@ if (Config.MultiAgent) {
   client.socket.on('msg', (id: string, name: string, messageRaw: any, reply) => {
     const message = new Message(
       messageRaw.type,
-      messageRaw.sender,
+      messageRaw.senderId,
       new Tile(messageRaw.senderPosition.x, messageRaw.senderPosition.y),
       messageRaw.timestamp,
       messageRaw.payload
@@ -98,7 +114,14 @@ if (Config.MultiAgent) {
         for (const parcelId of message.getParcelIdsIntention()) {
           agent.beliefSet.parcelsToAvoidIds.add(parcelId);
         }
-
+        break;
+      case MessageType.ASKFORLEADER:
+        if (leaderId === agent.id) {
+          client.shout(MessageFactory.createLeaderMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y)));
+        }
+        break;
+      case MessageType.LEADER:
+        leaderId = message.senderId;
         break;
     }
   });
@@ -111,7 +134,7 @@ const agentDoAction = async () => {
     if (actionErrors >= Config.ActionErrorPatience) {
       agent.setGoal();
       const parcelsToPick = agent.computeNewPlan();
-      if (parcelsToPick.length > 0) {
+      if (parcelsToPick && parcelsToPick.length > 0) {
         client.shout(
           MessageFactory.createParcelsIntentionMessage(
             agent.id,

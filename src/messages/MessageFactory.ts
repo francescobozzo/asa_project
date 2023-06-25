@@ -29,6 +29,14 @@ class MessageFactory {
     message.payload = { parcelIds };
     return message;
   }
+
+  static createLeaderMessage(id: string, position: Tile) {
+    return new Message(MessageType.LEADER, id, position, new Date().toISOString(), {});
+  }
+
+  static createAskForLeaderMessage(id: string, position: Tile) {
+    return new Message(MessageType.ASKFORLEADER, id, position, new Date().toISOString(), {});
+  }
 }
 
 export default MessageFactory;
