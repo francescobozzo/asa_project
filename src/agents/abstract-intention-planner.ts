@@ -1,8 +1,10 @@
+import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
 import Parcel from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
 import { Action, arrayAverage } from '../belief-sets/utils.js';
+import MessageFactory from '../messages/MessageFactory.js';
 
 export enum GoalType {
   PARCEL = 'parcel',
@@ -36,11 +38,23 @@ abstract class AbstractIntentionPlanner {
   protected cumulatedCarriedPenaltyFactor: number;
   protected useProbabilisticModel: boolean = false;
   protected parcelsToPick: Parcel[] = [];
+  protected isMultiAgentLeaderVersion: boolean;
+  protected client: DeliverooApi;
+  public leaderId: string;
+  public isAskingForANewPlan = false;
 
-  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number, useProbabilisticModel: boolean) {
+  constructor(
+    mainPlayerSpeedLR: number,
+    cumulatedCarriedPenaltyFactor: number,
+    useProbabilisticModel: boolean,
+    isMultiAgentLeaderVersion: boolean,
+    client: DeliverooApi
+  ) {
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
     this.cumulatedCarriedPenaltyFactor = cumulatedCarriedPenaltyFactor;
     this.useProbabilisticModel = useProbabilisticModel;
+    this.isMultiAgentLeaderVersion = isMultiAgentLeaderVersion;
+    this.client = client;
   }
 
   abstract potentialScore(startX: number, startY: number, endX: number, endY: number): number;
@@ -88,7 +102,17 @@ abstract class AbstractIntentionPlanner {
   getNewPlan() {
     if (Number.isInteger(this.x) && Number.isInteger(this.y)) {
       // check that previous action is completed
-      if (this.goal) {
+
+      if (this.isMultiAgentLeaderVersion && this.leaderId && this.leaderId !== this.id && !this.isAskingForANewPlan) {
+        // ask leader for a plan
+        this.isAskingForANewPlan = true;
+        const planMessage = this.client.say(
+          this.leaderId,
+          MessageFactory.createAskForPlanMessage(this.id, this.beliefSet.getTile(this.x, this.y))
+        );
+      } else if (this.isMultiAgentLeaderVersion && this.leaderId && this.leaderId !== this.id) {
+        // I am the leader, I can compute my plan myself
+      } else if (this.goal && !this.isMultiAgentLeaderVersion) {
         return this.computeNewPlan();
       }
     }

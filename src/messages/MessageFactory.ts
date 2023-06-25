@@ -1,6 +1,7 @@
 import Agent from '../belief-sets/agent.js';
 import Parcel from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
+import { Action } from '../belief-sets/utils.js';
 import Message, { MessageType } from './Message.js';
 
 class MessageFactory {
@@ -36,6 +37,14 @@ class MessageFactory {
 
   static createAskForLeaderMessage(id: string, position: Tile) {
     return new Message(MessageType.ASKFORLEADER, id, position, new Date().toISOString(), {});
+  }
+
+  static createAskForPlanMessage(id: string, position: Tile) {
+    return new Message(MessageType.ASKFORPLAN, id, position, new Date().toISOString(), {});
+  }
+
+  static createPlanMessage(id: string, position: Tile, actions: Action[]) {
+    return new Message(MessageType.PLAN, id, position, new Date().toISOString(), { actions });
   }
 }
 

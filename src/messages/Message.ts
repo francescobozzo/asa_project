@@ -1,6 +1,7 @@
 import Agent from '../belief-sets/agent.js';
 import Parcel from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
+import { Action } from '../belief-sets/utils.js';
 
 export enum MessageType {
   INFORM = 'inform',
@@ -9,6 +10,8 @@ export enum MessageType {
   INTENTION = 'intention',
   LEADER = 'leader',
   ASKFORLEADER = 'askforleader',
+  ASKFORPLAN = 'askforplan',
+  PLAN = 'plan',
 }
 
 class Message {
@@ -39,6 +42,10 @@ class Message {
 
   getParcelIdsIntention(): string[] {
     return this.payload.parcelIds ?? [];
+  }
+
+  getPlan(): Action[] {
+    return this.payload.actions ? this.payload.actions.map((action) => action as Action) : [];
   }
 }
 

@@ -1,11 +1,18 @@
+import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import { PriorityQueue } from 'js-sdsl';
 import Tile from '../belief-sets/tile.js';
 import { Action, Plan, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner, { GoalType } from './abstract-intention-planner.js';
 
 class AstarIntentionPlanner extends AbstractIntentionPlanner {
-  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number, useProbabilisticModel: boolean) {
-    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel);
+  constructor(
+    mainPlayerSpeedLR: number,
+    cumulatedCarriedPenaltyFactor: number,
+    useProbabilisticModel: boolean,
+    isMultiAgentLeaderVersion: boolean,
+    client: DeliverooApi
+  ) {
+    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel, isMultiAgentLeaderVersion, client);
   }
 
   computeNewPlan() {

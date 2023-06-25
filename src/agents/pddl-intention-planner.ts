@@ -1,3 +1,4 @@
+import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import { PddlAction } from '@unitn-asa/pddl-client';
 import log from 'loglevel';
 import Agent from '../belief-sets/agent.js';
@@ -8,8 +9,14 @@ import AbstractIntentionPlanner from './abstract-intention-planner.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   private isComputing: boolean = false;
-  constructor(mainPlayerSpeedLR: number, cumulatedCarriedPenaltyFactor: number, useProbabilisticModel: boolean) {
-    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel);
+  constructor(
+    mainPlayerSpeedLR: number,
+    cumulatedCarriedPenaltyFactor: number,
+    useProbabilisticModel: boolean,
+    isMultiAgentLeaderVersion: boolean,
+    client: DeliverooApi
+  ) {
+    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel, isMultiAgentLeaderVersion, client);
   }
 
   private buildPDDLPutdownAction(parcels: Parcel[]) {

@@ -21,10 +21,11 @@ const client = new DeliverooApi(`http://localhost:${Config.Port}`, Config.Token)
 const agent = new BrainClass(
   Config.MainPlayerSpeedLearningRate,
   Config.CumulatedCarriedPenaltyFactor,
-  Config.UseProbabilisticModel
+  Config.UseProbabilisticModel,
+  Config.MultiAgentLeaderVersion,
+  client
 );
 let isLeaderInitialised = false;
-let leaderId: string = undefined;
 
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles, Config.ParcelDecayLearningRate);
@@ -40,8 +41,9 @@ if (Config.SenseYou)
       client.shout(MessageFactory.createAskForLeaderMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y)));
 
       setTimeout(() => {
-        if (!leaderId) {
-          leaderId = agent.id;
+        if (!agent.leaderId) {
+          agent.leaderId = agent.id;
+
           client.shout(MessageFactory.createLeaderMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y)));
         }
       }, 5000);
@@ -92,6 +94,7 @@ if (Config.SenseParcels)
 
 if (Config.MultiAgentLeaderVersion || Config.MultiAgentDistributedVersion) {
   client.socket.on('msg', (id: string, name: string, messageRaw: any, reply) => {
+    console.log(messageRaw);
     const message = new Message(
       messageRaw.type,
       messageRaw.senderId,
@@ -116,12 +119,23 @@ if (Config.MultiAgentLeaderVersion || Config.MultiAgentDistributedVersion) {
         }
         break;
       case MessageType.ASKFORLEADER:
-        if (leaderId === agent.id) {
+        if (agent.leaderId === agent.id) {
           client.shout(MessageFactory.createLeaderMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y)));
         }
         break;
       case MessageType.LEADER:
-        leaderId = message.senderId;
+        agent.leaderId = message.senderId;
+        break;
+      case MessageType.ASKFORPLAN:
+        client.say(
+          message.senderId,
+          MessageFactory.createPlanMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y), [Action.RIGHT])
+        );
+        break;
+      case MessageType.PLAN:
+        const plan = message.getPlan();
+        agent.plan = plan;
+        agent.isAskingForANewPlan = false;
         break;
     }
   });
