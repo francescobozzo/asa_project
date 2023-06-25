@@ -34,7 +34,7 @@ if (Config.SenseYou)
   client.socket.on('you', (me: any) => {
     if (agent.beliefSet !== null) agent.updateMe(me.id, me.name, me.x, me.y, me.score);
 
-    if (!isLeaderInitialised && Config.MultiAgent && Config.MultiAgentLeaderVersion) {
+    if (!isLeaderInitialised && Config.MultiAgentLeaderVersion) {
       isLeaderInitialised = true;
 
       client.shout(MessageFactory.createAskForLeaderMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y)));
@@ -52,7 +52,7 @@ if (Config.SenseAgents)
   client.socket.on('agents sensing', (agents: any) => {
     if (agent.beliefSet !== null) {
       agent.agentsSensingHandler(agents);
-      if (Config.MultiAgent)
+      if (Config.MultiAgentDistributedVersion)
         client.shout(
           MessageFactory.createInformAgentMessage(
             agent.id,
@@ -68,7 +68,7 @@ if (Config.SenseParcels)
     if (agent.beliefSet !== null) {
       const parcelsToPick = agent.parcelSensingHandler(parcels);
 
-      if (Config.MultiAgent) {
+      if (Config.MultiAgentDistributedVersion) {
         client.shout(
           MessageFactory.createInformParcelMessage(
             agent.id,
@@ -77,7 +77,7 @@ if (Config.SenseParcels)
           )
         );
 
-        if (parcelsToPick.length > 0) {
+        if (Config.MultiAgentDistributedVersion && parcelsToPick && parcelsToPick.length > 0) {
           client.shout(
             MessageFactory.createParcelsIntentionMessage(
               agent.id,
@@ -90,7 +90,7 @@ if (Config.SenseParcels)
     }
   });
 
-if (Config.MultiAgent) {
+if (Config.MultiAgentLeaderVersion || Config.MultiAgentDistributedVersion) {
   client.socket.on('msg', (id: string, name: string, messageRaw: any, reply) => {
     const message = new Message(
       messageRaw.type,
@@ -131,10 +131,12 @@ let actionInProgress = false;
 let actionErrors = 0;
 const agentDoAction = async () => {
   if (Config.TakeActions && !actionInProgress) {
+    actionInProgress = true;
+
     if (actionErrors >= Config.ActionErrorPatience) {
       agent.setGoal();
       const parcelsToPick = agent.computeNewPlan();
-      if (parcelsToPick && parcelsToPick.length > 0) {
+      if (Config.MultiAgentDistributedVersion && parcelsToPick && parcelsToPick.length > 0) {
         client.shout(
           MessageFactory.createParcelsIntentionMessage(
             agent.id,
@@ -146,7 +148,6 @@ const agentDoAction = async () => {
       actionErrors = 0;
     }
 
-    actionInProgress = true;
     const move = agent.getNextAction();
 
     let result = null;

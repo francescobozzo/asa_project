@@ -88,10 +88,7 @@ abstract class AbstractIntentionPlanner {
   getNewPlan() {
     if (Number.isInteger(this.x) && Number.isInteger(this.y)) {
       // check that previous action is completed
-      if (this.beliefSet.getTile(this.x, this.y).hasParcel) {
-        // if you are on a parcel take it no matter what is your current plan
-        this.plan = [Action.PICKUP];
-      } else if (this.goal) {
+      if (this.goal) {
         return this.computeNewPlan();
       }
     }
