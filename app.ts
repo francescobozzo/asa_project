@@ -54,7 +54,7 @@ if (Config.SenseAgents)
   client.socket.on('agents sensing', (agents: any) => {
     if (agent.beliefSet !== null) {
       agent.agentsSensingHandler(agents);
-      if (Config.MultiAgentDistributedVersion)
+      if (Config.MultiAgentDistributedVersion || Config.MultiAgentLeaderVersion)
         client.shout(
           MessageFactory.createInformAgentMessage(
             agent.id,
@@ -70,7 +70,7 @@ if (Config.SenseParcels)
     if (agent.beliefSet !== null) {
       const parcelsToPick = agent.parcelSensingHandler(parcels);
 
-      if (Config.MultiAgentDistributedVersion) {
+      if (Config.MultiAgentDistributedVersion || Config.MultiAgentLeaderVersion) {
         client.shout(
           MessageFactory.createInformParcelMessage(
             agent.id,
