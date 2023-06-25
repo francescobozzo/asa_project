@@ -6,7 +6,6 @@ import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
-import { PDDLPlanPlanner, Planner } from '../belief-sets/pddl-planner.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   private isComputing: boolean = false;
@@ -22,7 +21,8 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
   }
 
   async getPlanFromPlanner(agentId: string) {
-    const pddlProblemContext = this.beliefSet.toPddlDomain();
+    const agent = this.beliefSet.getAgents().get(agentId);
+    const pddlProblemContext = this.beliefSet.toPddlDomain(agent);
 
     const parcels = this.beliefSet
       .getVisibleParcels()
@@ -127,7 +127,7 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     }
     this.isComputing = true;
 
-    const pddlProblemContext = this.beliefSet.toPddlDomain();
+    const pddlProblemContext = this.beliefSet.toPddlDomain(undefined);
     pddlProblemContext.actions.push(this.buildPDDLPutdownAction(this.parcelsToPick));
     let goal = 'and (delivered)';
     if (this.parcelsToPick.length === 0)

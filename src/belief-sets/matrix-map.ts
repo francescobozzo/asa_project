@@ -335,7 +335,7 @@ class DeliverooMap {
 
   // PUBLIC EXPORTER
 
-  toPddlDomain() {
+  toPddlDomain(mainAgent: Agent) {
     console.log('Generating pddl domain');
     const tileObjects: string[] = [];
     const predicates: string[] = [];
@@ -361,7 +361,10 @@ class DeliverooMap {
         for (const neighbor of this.getNeighbors(current)) {
           predicates.push(`(can-move ${this.tileToPddl(current)} ${this.tileToPddl(neighbor)})`);
 
-          if (current.isMainPlayer) {
+          if (
+            (!mainAgent && current.isMainPlayer) ||
+            (mainAgent && mainAgent.x === current.x && mainAgent.y === current.y)
+          ) {
             predicates.push(`(can-move ${this.tileToPddl(neighbor)} ${this.tileToPddl(current)})`);
           }
         }

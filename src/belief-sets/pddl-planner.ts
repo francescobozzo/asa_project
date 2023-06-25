@@ -1,10 +1,9 @@
-import log from 'loglevel';
+import { PddlAction } from '@unitn-asa/pddl-client';
 import Agent from './agent.js';
 import Parcel from './parcel.js';
 import { PDDLProblemContext, getPlan } from './pddl.js';
 import Tile from './tile.js';
-import { Action, ManhattanDistanceFromYX, computeAction, computeActionFromYX, pddlToyx, yxToPddl } from './utils.js';
-import { PddlAction } from '@unitn-asa/pddl-client';
+import { ManhattanDistanceFromYX, yxToPddl } from './utils.js';
 
 export class Planner {
   private agent: Agent;
@@ -36,7 +35,6 @@ export class Planner {
     tileForRandomMovement: Tile
   ): PDDLPlanPlanner {
     const parcelsToPick = this.computeParcelsToPick(parcels, agents, playerSpeedEstimation, parcelsDecayEstimation);
-    let planToReturn: Action[] = [];
 
     pddlProblemContext.actions.push(this.buildPDDLPutdownAction(parcelsToPick));
     let goal = 'and (delivered)';

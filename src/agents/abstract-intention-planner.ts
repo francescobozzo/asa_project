@@ -2,11 +2,10 @@ import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
 import Parcel from '../belief-sets/parcel.js';
+import { Planner } from '../belief-sets/pddl-planner.js';
 import Tile from '../belief-sets/tile.js';
 import { Action, arrayAverage } from '../belief-sets/utils.js';
 import MessageFactory from '../messages/MessageFactory.js';
-import { PDDLPlanPlanner, Planner } from '../belief-sets/pddl-planner.js';
-import { getPlan } from '../belief-sets/pddl.js';
 
 export enum GoalType {
   PARCEL = 'parcel',
@@ -23,7 +22,7 @@ class Goal {
 }
 
 abstract class AbstractIntentionPlanner {
-  private id: string;
+  protected id: string;
   private name: string;
   protected x: number = undefined;
   protected y: number = undefined;
@@ -126,7 +125,7 @@ abstract class AbstractIntentionPlanner {
   getNextAction() {
     if (Number.isInteger(this.x) && Number.isInteger(this.y) && this.plan.length > 0) {
       const parcelsReward = Array.from(this.beliefSet.parcels.values())
-        .filter((parcel) => parcel.x === this.x && parcel.y === this.y && parcel.carriedBy == null)
+        .filter((parcel) => parcel.x === this.x && parcel.y === this.y && !parcel.carriedBy)
         .reduce((sum, current) => sum + current.reward, 0);
 
       if (parcelsReward > 0) this.plan.unshift(Action.PICKUP);
