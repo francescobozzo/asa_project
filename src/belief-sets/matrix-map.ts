@@ -8,7 +8,7 @@ import Parcel from './parcel.js';
 
 class DeliverooMap {
   private map: Tile[][] = [];
-  private validTiles: Tile[] = [];
+  public validTiles: Tile[] = [];
   public deliveryStations: Tile[] = [];
   private agents = new Map<string, Agent>();
   private visibleAgentIds = new Set<string>();
@@ -440,6 +440,10 @@ class DeliverooMap {
     returnValue += `└${'─'.repeat(this.map.length * 3)}┘\n`;
 
     console.log(returnValue);
+  }
+
+  getSizeLength() {
+    return this.map.length;
   }
 }
 

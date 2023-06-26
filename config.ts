@@ -64,4 +64,7 @@ export default {
   MultiAgentLeaderVersion: process.env.MULTI_AGENT_LEADER_VERSION
     ? process.env.MULTI_AGENT_LEADER_VERSION === 'true'
     : true,
+  UseTrafficMultiAgentLeaderVersion: process.env.USE_TRAFFIC_MULTI_AGENT_LEADER_VERSION
+    ? process.env.USE_TRAFFIC_MULTI_AGENT_LEADER_VERSION === 'true'
+    : false,
 };

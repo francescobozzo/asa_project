@@ -22,6 +22,7 @@ const agent = new BrainClass(
   Config.MainPlayerSpeedLearningRate,
   Config.CumulatedCarriedPenaltyFactor,
   Config.UseProbabilisticModel,
+  Config.UseTrafficMultiAgentLeaderVersion,
   Config.MultiAgentLeaderVersion,
   client
 );
@@ -29,6 +30,7 @@ let isLeaderInitialised = false;
 
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   agent.beliefSet = new DeliverooMap(width, height, tiles, Config.ParcelDecayLearningRate);
+  agent.initTrafficMap();
 });
 
 if (Config.SenseYou)
@@ -46,7 +48,7 @@ if (Config.SenseYou)
 
           client.shout(MessageFactory.createLeaderMessage(agent.id, agent.beliefSet.getTile(agent.x, agent.y)));
         }
-      }, 5000);
+      }, 2500);
     }
   });
 
@@ -94,7 +96,6 @@ if (Config.SenseParcels)
 
 if (Config.MultiAgentLeaderVersion || Config.MultiAgentDistributedVersion) {
   client.socket.on('msg', async (id: string, name: string, messageRaw: any, reply) => {
-    console.log(messageRaw);
     const message = new Message(
       messageRaw.type,
       messageRaw.senderId,

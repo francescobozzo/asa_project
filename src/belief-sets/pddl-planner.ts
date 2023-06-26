@@ -8,6 +8,7 @@ import { ManhattanDistanceFromYX, yxToPddl } from './utils.js';
 export class Planner {
   private agent: Agent;
   private useProbabilisticModel: boolean = false;
+  private useTrafficModel: boolean = false;
   private distanceCache: Map<string, number>;
   private deliveryStations: Tile[];
   private cumulatedCarriedPenaltyFactor: number;
@@ -15,12 +16,14 @@ export class Planner {
   constructor(
     agent: Agent,
     useProbabilisticModel: boolean,
+    useTrafficModel: boolean,
     distanceCache: Map<string, number>,
     deliveryStations: Tile[],
     cumulatedCarriedPenaltyFactor: number
   ) {
     this.agent = agent;
     this.useProbabilisticModel = useProbabilisticModel;
+    this.useTrafficModel = useTrafficModel;
     this.distanceCache = distanceCache;
     this.deliveryStations = deliveryStations;
     this.cumulatedCarriedPenaltyFactor = cumulatedCarriedPenaltyFactor;
@@ -32,9 +35,16 @@ export class Planner {
     agents: Agent[],
     playerSpeedEstimation: number,
     parcelsDecayEstimation: number,
-    tileForRandomMovement: Tile
+    tileForRandomMovement: Tile,
+    trafficMap: number[][]
   ): PDDLPlanPlanner {
-    const parcelsToPick = this.computeParcelsToPick(parcels, agents, playerSpeedEstimation, parcelsDecayEstimation);
+    const parcelsToPick = this.computeParcelsToPick(
+      parcels,
+      agents,
+      playerSpeedEstimation,
+      parcelsDecayEstimation,
+      trafficMap
+    );
 
     pddlProblemContext.actions.push(this.buildPDDLPutdownAction(parcelsToPick));
     let goal = 'and (delivered)';
@@ -53,7 +63,8 @@ export class Planner {
     parcels: Parcel[],
     agents: Agent[],
     playerSpeedEstimation: number,
-    parcelsDecayEstimation: number
+    parcelsDecayEstimation: number,
+    trafficMap: number[][]
   ): Parcel[] {
     const parcelsToPick: Parcel[] = [];
 
@@ -62,31 +73,22 @@ export class Planner {
     }
 
     const parcelsPotentialScoresToPick = parcels
-      .map(
-        (parcel) =>
-          new ParcelPotentialScore(
-            parcel,
-            this.useProbabilisticModel
-              ? this.potentialScore(
-                  parcels,
-                  this.agent.x,
-                  this.agent.y,
-                  parcel.x,
-                  parcel.y,
-                  playerSpeedEstimation,
-                  parcelsDecayEstimation
-                )
-              : this.potentialScore(
-                  parcels,
-                  this.agent.x,
-                  this.agent.y,
-                  parcel.x,
-                  parcel.y,
-                  playerSpeedEstimation,
-                  parcelsDecayEstimation
-                ) - this.probabilisticPenalty(this.agent.x, this.agent.y, parcel, agents)
-          )
-      )
+      .map((parcel) => {
+        const score = this.potentialScore(
+          parcels,
+          this.agent.x,
+          this.agent.y,
+          parcel.x,
+          parcel.y,
+          playerSpeedEstimation,
+          parcelsDecayEstimation
+        );
+        const probabilisticPenalty = this.useProbabilisticModel
+          ? this.probabilisticPenalty(this.agent.x, this.agent.y, parcel, agents)
+          : 0;
+        const trafficPenalty = this.useTrafficModel ? this.trafficPenalty(parcel, trafficMap) : 0;
+        return new ParcelPotentialScore(parcel, score - probabilisticPenalty - trafficPenalty);
+      })
       .filter((pp) => pp.potentialScore > 0)
       .sort((pp1, pp2) => pp2.potentialScore - pp1.potentialScore);
 
@@ -173,6 +175,49 @@ export class Planner {
     }
     probability /= agentDistances.size;
     return parcel.reward * probability;
+  }
+
+  private trafficPenalty(parcel: Parcel, trafficMap: number[][]): number {
+    const x = parcel.x;
+    const y = parcel.y;
+    let maxTraffic = 0.01;
+
+    for (let i = 0; i < trafficMap.length; i++) {
+      for (let j = 0; j < trafficMap[i].length; j++) maxTraffic = Math.max(maxTraffic, trafficMap[i][j]);
+    }
+    let traffic = 0;
+    const neighbours = this.getNeighboursFromTrafficMap(x, y, trafficMap);
+    for (const neigh of neighbours) {
+      const x = neigh[0];
+      const y = neigh[1];
+      traffic += trafficMap[x][y];
+    }
+    traffic /= neighbours.length;
+    const trafficProbability = Math.min(traffic / maxTraffic, 1);
+    return 2 * parcel.reward * trafficProbability;
+  }
+
+  private roundTileCoordinates(x: number, y: number) {
+    if (Math.round(x * 10) % 10 === 4 || Math.round(y * 10) % 10 === 4) {
+      return { roundX: Math.ceil(x), roundY: Math.ceil(y) };
+    } else if (Math.round(x * 10) % 10 === 6 || Math.round(y * 10) % 10 === 6) {
+      return { roundX: Math.floor(x), roundY: Math.floor(y) };
+    }
+
+    return { roundX: x, roundY: y };
+  }
+
+  private getNeighboursFromTrafficMap(x: number, y: number, trafficMap: number[][]) {
+    const roundCoords = this.roundTileCoordinates(x, y);
+    const roundX = roundCoords.roundX;
+    const roundY = roundCoords.roundY;
+    const neighbours = [];
+    if (roundX > 0 && trafficMap[roundX - 1][roundY] > 0) neighbours.push([roundX - 1, roundY]);
+    if (roundX < trafficMap.length - 1 && trafficMap[roundX + 1][roundY] > 0) neighbours.push([roundX + 1, roundY]);
+    if (roundY > 0 && trafficMap[roundX][roundY - 1] > 0) neighbours.push([roundX, roundY - 1]);
+    if (roundY < trafficMap.length - 1 && trafficMap[roundX][roundY + 1] > 0) neighbours.push([roundX, roundY + 1]);
+
+    return neighbours;
   }
 }
 

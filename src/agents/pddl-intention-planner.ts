@@ -6,23 +6,39 @@ import Parcel from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner from './abstract-intention-planner.js';
+import { PDDLPlanPlanner, Planner } from '../belief-sets/pddl-planner.js';
+import Tile from '../belief-sets/tile.js';
+import { kMaxLength } from 'buffer';
+import { trace } from 'console';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   private isComputing: boolean = false;
+  private agentToPlanTiles = new Map<string, Tile[]>();
 
   constructor(
     mainPlayerSpeedLR: number,
     cumulatedCarriedPenaltyFactor: number,
     useProbabilisticModel: boolean,
+    useTrafficModel: boolean,
     isMultiAgentLeaderVersion: boolean,
     client: DeliverooApi
   ) {
-    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel, isMultiAgentLeaderVersion, client);
+    super(
+      mainPlayerSpeedLR,
+      cumulatedCarriedPenaltyFactor,
+      useProbabilisticModel,
+      useTrafficModel,
+      isMultiAgentLeaderVersion,
+      client
+    );
   }
 
   async getPlanFromPlanner(agentId: string) {
     const agent = this.beliefSet.getAgents().get(agentId);
     const pddlProblemContext = this.beliefSet.toPddlDomain(agent);
+    if (this.agentToPlanTiles.has(agentId)) {
+      this.decreaseTrafficMap(this.agentToPlanTiles.get(agentId));
+    }
 
     const parcels = this.beliefSet
       .getVisibleParcels()
@@ -36,17 +52,30 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
         Array.from(this.beliefSet.getAgents().values()),
         this.mainPlayerSpeedEstimation,
         this.beliefSet.getParcelsDecayEstimation(),
-        this.beliefSet.getRandomValidTile()
+        this.beliefSet.getRandomValidTile(),
+        this.trafficMap
       );
     try {
+      this.agentToPlanTiles.set(agentId, []);
       const newPddlPlan = await planPlanner.getPlan;
       const plan: Action[] = [];
+      let isFirstTile = true;
       let i = 0;
+      if (!newPddlPlan) return [];
       let firstTile = newPddlPlan.length > 0 ? newPddlPlan[0].args[0] : undefined;
       for (const step of newPddlPlan) {
         // TODO: handle parallel operations
         if (step.action === 'move') {
-          plan.push(computeAction(this.beliefSet.pddlToTile(step.args[0]), this.beliefSet.pddlToTile(step.args[1])));
+          const fromTile = this.beliefSet.pddlToTile(step.args[0]);
+          const toTile = this.beliefSet.pddlToTile(step.args[1]);
+          if (isFirstTile) {
+            this.trafficMap[fromTile.x][fromTile.y] += 1;
+            isFirstTile = false;
+            this.agentToPlanTiles.get(agentId).push(fromTile);
+          }
+          this.trafficMap[toTile.x][toTile.y] += 1;
+          this.agentToPlanTiles.get(agentId).push(toTile);
+          plan.push(computeAction(fromTile, toTile));
           i += 1;
           const keyDistanceCache = firstTile + step.args[1];
           if (!this.distanceCache.has(keyDistanceCache) || i < this.distanceCache.get(keyDistanceCache)) {
@@ -67,6 +96,10 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
       log.error(`DEBUG: Couldn't generate a new pddl plan for agent ${agentId} \n`, error);
     }
     return [];
+  }
+
+  decreaseTrafficMap(planTiles: Tile[]) {
+    for (const tile of planTiles) this.trafficMap[tile.x][tile.y] -= 1;
   }
 
   private buildPDDLPutdownAction(parcels: Parcel[]) {
@@ -95,16 +128,12 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     const parcelsPotentialScoresToPick = this.beliefSet
       .getVisibleParcels()
       .concat(this.beliefSet.getNotVisibleParcels())
-      .map(
-        (parcel) =>
-          new ParcelPotentialScore(
-            parcel,
-            this.useProbabilisticModel
-              ? this.potentialScore(this.x, this.y, parcel.x, parcel.y)
-              : this.potentialScore(this.x, this.y, parcel.x, parcel.y) -
-                this.probabilisticPenalty(this.x, this.y, parcel)
-          )
-      )
+      .map((parcel) => {
+        const score = this.potentialScore(this.x, this.y, parcel.x, parcel.y);
+        const probabilisticPenalty = this.useProbabilisticModel ? this.probabilisticPenalty(this.x, this.y, parcel) : 0;
+        const trafficPenalty = this.useTrafficModel ? this.trafficPenalty(parcel) : 0;
+        return new ParcelPotentialScore(parcel, score - probabilisticPenalty - trafficPenalty);
+      })
       .filter((pp) => pp.potentialScore > 0)
       .sort((pp1, pp2) => pp2.potentialScore - pp1.potentialScore);
 
@@ -146,12 +175,20 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     getPlan(pddlProblemContext, goal)
       .then((newPddlPlan) => {
         const plan: Action[] = [];
+        let isFirstTile = true;
         let i = 0;
         let firstTile = newPddlPlan.length > 0 ? newPddlPlan[0].args[0] : undefined;
         for (const step of newPddlPlan) {
           // TODO: handle parallel operations
           if (step.action === 'move') {
-            plan.push(computeAction(this.beliefSet.pddlToTile(step.args[0]), this.beliefSet.pddlToTile(step.args[1])));
+            const fromTile = this.beliefSet.pddlToTile(step.args[0]);
+            const toTile = this.beliefSet.pddlToTile(step.args[1]);
+            if (isFirstTile) {
+              this.trafficMap[fromTile.x][fromTile.y] += 1;
+              isFirstTile = false;
+            }
+            this.trafficMap[toTile.x][toTile.y] += 1;
+            plan.push(computeAction(fromTile, toTile));
             i += 1;
             const keyDistanceCache = firstTile + step.args[1];
             if (!this.distanceCache.has(keyDistanceCache) || i < this.distanceCache.get(keyDistanceCache)) {
@@ -233,6 +270,24 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     }
     probability /= agentDistances.size;
     return parcel.reward * probability;
+  }
+
+  private trafficPenalty(parcel: Parcel): number {
+    const x = parcel.x;
+    const y = parcel.y;
+    let maxTraffic = 0.01;
+
+    for (let i = 0; i < this.trafficMap.length; i++) {
+      for (let j = 0; j < this.trafficMap[i].length; j++) maxTraffic = Math.max(maxTraffic, this.trafficMap[i][j]);
+    }
+    let traffic = 0;
+    const neighbours = this.beliefSet.getNeighbors(this.beliefSet.getTile(x, y));
+    for (const neigh of neighbours) {
+      traffic += this.trafficMap[neigh.x][neigh.y];
+    }
+    traffic /= neighbours.length;
+    const trafficProbability = Math.min(traffic / maxTraffic, 1);
+    return 2 * parcel.reward * trafficProbability;
   }
 }
 

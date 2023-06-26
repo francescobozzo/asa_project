@@ -38,23 +38,27 @@ abstract class AbstractIntentionPlanner {
   protected distanceCache = new Map<string, number>();
   protected cumulatedCarriedPenaltyFactor: number;
   protected useProbabilisticModel: boolean = false;
+  protected useTrafficModel: boolean = false;
   protected parcelsToPick: Parcel[] = [];
   protected isMultiAgentLeaderVersion: boolean;
   protected client: DeliverooApi;
   public leaderId: string;
   public isAskingForANewPlan = false;
   public agentToPlanner = new Map<string, Planner>();
+  protected trafficMap: number[][] = [];
 
   constructor(
     mainPlayerSpeedLR: number,
     cumulatedCarriedPenaltyFactor: number,
     useProbabilisticModel: boolean,
+    useTrafficModel: boolean,
     isMultiAgentLeaderVersion: boolean,
     client: DeliverooApi
   ) {
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
     this.cumulatedCarriedPenaltyFactor = cumulatedCarriedPenaltyFactor;
     this.useProbabilisticModel = useProbabilisticModel;
+    this.useTrafficModel = useTrafficModel;
     this.isMultiAgentLeaderVersion = isMultiAgentLeaderVersion;
     this.client = client;
   }
@@ -63,6 +67,14 @@ abstract class AbstractIntentionPlanner {
   abstract computeNewPlan();
 
   // PUBLIC SENSING
+
+  initTrafficMap() {
+    for (let i = 0; i < this.beliefSet.getSizeLength(); i++) {
+      this.trafficMap.push([]);
+      for (let j = 0; j < this.beliefSet.getSizeLength(); j++) this.trafficMap[i].push(-1);
+    }
+    for (const tile of this.beliefSet.validTiles) this.trafficMap[tile.y][tile.x] = 0;
+  }
 
   agentsSensingHandler(agents: any) {
     log.debug(`DEBUG: main player perceived ${agents.length} agents`);
@@ -112,7 +124,7 @@ abstract class AbstractIntentionPlanner {
           this.leaderId,
           MessageFactory.createAskForPlanMessage(this.id, this.beliefSet.getTile(this.x, this.y))
         );
-      } else if (this.isMultiAgentLeaderVersion && this.leaderId && this.leaderId === this.id) {
+      } else if (this.amITheLeader()) {
         // I am the leader, I can compute my plan myself
         return this.computeNewPlan();
       } else if (this.goal && !this.isMultiAgentLeaderVersion) {
@@ -257,6 +269,7 @@ abstract class AbstractIntentionPlanner {
         new Planner(
           this.beliefSet.getAgents().get(agentId),
           this.useProbabilisticModel,
+          this.useTrafficModel,
           this.distanceCache,
           this.beliefSet.deliveryStations,
           this.cumulatedCarriedPenaltyFactor
@@ -267,6 +280,10 @@ abstract class AbstractIntentionPlanner {
 
   async getPlanFromPlanner(agentId: string) {
     return undefined;
+  }
+
+  amITheLeader() {
+    return this.isMultiAgentLeaderVersion && this.leaderId && this.leaderId === this.id;
   }
 }
 

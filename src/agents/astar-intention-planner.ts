@@ -9,10 +9,18 @@ class AstarIntentionPlanner extends AbstractIntentionPlanner {
     mainPlayerSpeedLR: number,
     cumulatedCarriedPenaltyFactor: number,
     useProbabilisticModel: boolean,
+    useTrafficModel: boolean,
     isMultiAgentLeaderVersion: boolean,
     client: DeliverooApi
   ) {
-    super(mainPlayerSpeedLR, cumulatedCarriedPenaltyFactor, useProbabilisticModel, isMultiAgentLeaderVersion, client);
+    super(
+      mainPlayerSpeedLR,
+      cumulatedCarriedPenaltyFactor,
+      useProbabilisticModel,
+      useTrafficModel,
+      isMultiAgentLeaderVersion,
+      client
+    );
   }
 
   computeNewPlan() {
