@@ -1,27 +1,20 @@
 # Deliveroo {#sec:deliveroo}
-*Deliveroo* is the environement provided to test the developed agents of the project, it is composed of a grid of tiles divided into two main categories: walkable (green and red) and not walkable (black). A walkable tile can be a delivery zone (red).
+*Deliveroo* is the playground environement which has been provided to develop our BDI agents. It consists of a delivery-based game, where agents move on a bidimensional grid. The objective of the game is to pick up parcels that are scattered across the map and deliver them as fast as possible in the tile classified as delivery zones. Each parcel has an assigned reward value, which can decay over time, that is assigned to the agent that delivers it.
 
-Several parcels, represented by cubes, are scattered around the map, the goal of the agent is to move across it collecting the largest number of parcels. The final objective is to deliver collected elements in one delivery zone.
+![An example of a Deliveroo map.](./images/grid-map.png){ width=250px #fig:grid-map}
 
-![An example of grid map with different parcels and agents.](./images/grid-map.png){ width=250px #fig:grid-map}
+The game can be played by either a single agent or multiple agents too. In the latter case, agents are solid entities and can block the road to each other.
 
-The agent can move up, down, left, and right. It can pass through parcels and delivery zones but it is blocked by other agents that can play the game at the same time.
+Agents usually don't have the full perception of the world, but can perceive only other agents and parcels within a limited distance radius. Agents can also carry and deliver multiples parcels at the same time.
 
-Multiple parcels can be carried by one agent, and the value of them continues to decrease 
-
-The agent can sense other agents and parcels, respectively within two well defined radiuses.
-
-There are several parameters associated to the environment associated to various game elements:
-
-- *parcel*: generation internal, reward decay, maximum number, and variance;
-- *player movement*: steps number and speed;
-- *agent*: amount and speed;
+Deliveroo has been designed to offer many different game scenarios, thanks to the usage of many parameters:
+- *parcel*: generation interval, reward decay, reward value distribution;
+- *player*: steps number and movement speed;
+- *external agent*: quantity and movement speeed;
 - *sensing*: parcel and agent sensing radius;
+- *map*: definition of the grid board and tile classification (walkable, non-walkable, delivery)
 - *game clock*.
 
-Given all the customizable parameters and the size of the map, the number of different combinations is huge. An agent must be well developed in order to be able to act in all of them, both alone or cooperating with other agents.
-
-There are two main strategies that can be employed for the solution of the game:
-
-- *single-agent*: the agent acts alone;
-- *multi-agent*: the agent communicates with other mates to share information for the maximization of the summuation of all the rewards;
+Specifically, this exam project is split in two delivebles, each one with a different solution strategy:
+- *single-agent*: the agent acts alone trying to maximize its score;
+- *multi-agent*: the agent communicates with others to share information and to maximize the overal score of the group.

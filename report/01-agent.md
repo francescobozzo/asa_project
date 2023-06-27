@@ -17,10 +17,10 @@ A competitive system is composed of many agents acting against each other, the g
 
 A cooperative system is composed of many agents acting to maximize the shared reward, each agent must be capable of cooperate, coordinate and negotiate as much as possible.
 
-In a cooperative system an important implementation detail is the communication, it should be fast and reliable with a the lowest possible delay.
+In a cooperative system an important implementation detail is the communication, it should be fast and reliable with the lowest possible delay.
 
 ## Architecture {#sec:architecture}
-There exist multiple architectures that can be used to build an agent capable of acting in a given environment. We have decided to opt for the architecture described in the following pseudocode
+There exist multiple architectures that can be used to build an agent capable of acting in a given environment. We have decided to opt for the architecture described in the following pseudocode.
 
 \begin{algorithm}[H]
 \caption{Agent control loop}
@@ -53,4 +53,4 @@ There exist multiple architectures that can be used to build an agent capable of
 \end{algorithmic}
 \end{algorithm}
 
-A belief set $B$ is udpated after every environment communication, it is then used to compute the desires set $D$ which is filterd to create the intentions set $I$. Finally the intentions set is used in combination with the belief set to create a plan $\pi$ to satisfy all the intensions. The plan is then execute action by action $\alpha$. For every new information collected during the exectution the belief set, the intentions set, and the desires set are updated. After the update a replan can be done, during this phase a new plan is computed.
+A belief set $B$ is updated after every environment communication, and it is then used to compute the desires set $D$ which is filterd to create the intentions set $I$. Finally, the intentions set is used in combination with the belief set to create a plan $\pi$ to satisfy all the intentions. The plan is then execute action by action $\alpha$. Once the agent senses new information from the environment, the belief set, the intentions set, and the desires set are updated. After this update, the agent can decide whether to generate a new plan or stick with the current one.
