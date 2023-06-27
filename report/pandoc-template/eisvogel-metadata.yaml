@@ -13,4 +13,5 @@ link-citations: true
 header-includes: |
   \usepackage{algorithm}
   \usepackage{algpseudocode}
+  \usepackage{tikz}
   \renewcommand{\algorithmicforall}{\textbf{for each}}

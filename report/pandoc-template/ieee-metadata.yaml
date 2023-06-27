@@ -15,6 +15,7 @@ header-includes: |
   \usepackage{algpseudocode}
   \usepackage{booktabs}
   \usepackage{float}
+  \usepackage{tikz}
   \renewcommand{\algorithmicforall}{\textbf{for each}}
 abstract: |
 ...

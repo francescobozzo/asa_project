@@ -104,3 +104,14 @@ The cache is then used in many parts of the code.
 
 ## Replan {#sec:replan}
 Qui non so se per ora il replan dopo 5 tentativi sia interessante da menzionare.
+## Communication protocol {#sec:communication-protocol}
+The communication protocol is based on the provided library that offers multiple endpoints to handle different messages: `say`, `shout`, `ask`, and NON RICORDO L'ULTIMO.
+
+### Leader negotiation
+The leader negotiation is a fundamental step in the multi-agent architecture where one agent is chosen to be the leader who computes all the plans for the other agents. The election of the leader is a well known problem in the computer science literature, nevertheless we have decided to keep a simple solution since the focus on the project was something else. The negotation is achieved thanks to two message types: `askforaleader` and `leader`, the former is sent by every agent when they receive for the first time their position, as the name says the message simply asks for a leader. The latter is used to communicate the leader and it is used only by the agent who is the leader.
+After the `askforleader` message is sent a timeout of $2.5s$ is set, if no answer by an actual leader is received in the specficied amount of time it means that the game has no leader and consequentially the agent who asked for the leader will be elected and it will also communicate the election to all other agents listening.
+
+![Leader negotation.](./images/leader_negotiation.png){ width=250px #fig:leader-negotation}
+
+### Information sharing
+Different information are shared during the game across the agents in the same team. For simplicity we have decided to use a broadcast communication, in this way we do not have to keeep track of all the ids and
