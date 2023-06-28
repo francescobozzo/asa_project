@@ -1,26 +1,29 @@
 # Agent {#sec:agent}
-In the field of *Computer Science* an *agent* is an individual situated in some environment, and capable of flexible autonoumous action in that environment in order to meet its design objectives. With respect to a more traditional algorithm, there is no need of defining every edge case, a well defined agent should have a reasoning component capable of taking decisions even in unkown situations. The flexibility of an agent can be quantified across two main scales:
+In the field of Computer Science, the term "agent" refers to an individual situated within an environment and capable of autonomously and flexibly taking actions to achieve its design objectives. Unlike traditional algorithms, agents do not require explicit definition of every edge case. Instead, a well-defined agent possesses a reasoning component that enables it to make decisions even in unknown situations. The flexibility of an agent can be assessed along two primary dimensions:
 
-- reactive: delay required to respond to a change in the environment;
-- proactive: ability of taking action in advance for the maximization of future goals.
+- Reactive: This dimension measures the delay required for the agent to respond to changes in the environment.
+- Proactive: This dimension gauges the agent's ability to take proactive action to maximize future goals.
 
-Based on the environment and the agent itself there are different communication models but generally the agent perceives observations from the environment using sensors and performs actions against the environment employing actuators.
+Communication models between agents and their environments vary depending on the specific characteristics of the environment and the agent itself. Generally, an agent perceives observations from the environment through sensors and carries out actions on the environment using actuators.
 
-Another fundamental characteristic of an agent is its autonomy, the internal "brain" should handle the decision process with or without collected information, it should also evolve with respect to possible requirement changes.
+Autonomy is a fundamental characteristic of an agent. The internal decision-making process of an agent, often referred to as its "brain," should be capable of handling decisions with or without collected information. Furthermore, it should be able to adapt and evolve in response to potential changes in requirements.
 
-Finally an agent can be designed to solve tasks or goals. When we talk about tasks we mean small objectives that must be completed to achieve the final bigger goal. On the other hand we have a goal agent, it takes the goal and it has to define autonomously a list of tasks to fulfill the assigned goal.
+Agents can be designed to solve tasks or goals. Task-oriented agents focus on accomplishing smaller objectives that contribute to the achievement of a larger final goal. On the other hand, goal-oriented agents receive a specific goal and autonomously determine a list of tasks necessary to fulfill the assigned goal.
 
 ## Multi-agent system {#sec:multi-agent-system}
-A multi-agent system, as suggested by the name, is a group of agents placed in same environment. There are two main type of interactions: *cooperative* and *competitive*. During this project we will focus on both of them in several stages of the development.
+A multi-agent system, as implied by its name, refers to a collection of agents situated within the same environment. Interactions within such a system can be broadly categorized into two types: cooperative and competitive. Throughout this project, we will delve into both of these interaction modes at various stages of development.
 
-A competitive system is composed of many agents acting against each other, the goal can be divided into to sub-goals, maximizing the personal reward and minimize the oppenents' ones.
+In a competitive system, multiple agents act in opposition to one another, where the overarching goal can be divided into sub-goals focused on maximizing personal rewards while minimizing opponents' gains. Within this scenario, the objective function may be shared among enemy agents, and it is also plausible to have multiple functions where each agent interferes with enemies solely to achieve its own goals.
 
-A cooperative system is composed of many agents acting to maximize the shared reward, each agent must be capable of cooperate, coordinate and negotiate as much as possible.
+On the other hand, a cooperative system consists of numerous agents working together to maximize a shared reward. In such systems, each agent must possess the capability to cooperate, coordinate, and engage in negotiation to the greatest extent possible. Cooperative systems can be further classified into two main categories:
 
-In a cooperative system an important implementation detail is the communication, it should be fast and reliable with the lowest possible delay.
+- Simple (reciprocal) cooperation: This form of cooperation occurs when the benefits derived from collaboration outweigh the costs associated with the actions taken. It is considered the simplest type of cooperation as it leads to increased fitness for both the helper and the helped parties.
+- Altruistic cooperation: In this case, the cost incurred by the individuals or species offering assistance surpasses the advantages gained. This approach is often regarded as more challenging since it cannot be readily explained by a purely "genetic-centric" perspective.
+
+An essential aspect to consider when implementing a cooperative system is the communication mechanism. It should prioritize speed, reliability, and minimize delays as much as possible.
 
 ## Architecture {#sec:architecture}
-There exist multiple architectures that can be used to build an agent capable of acting in a given environment. We have decided to opt for the architecture described in the following pseudocode.
+There are several architectural options available for constructing an agent with the ability to operate within a specific environment. For our purposes, we have chosen to adopt the architecture outlined in the following pseudocode.
 
 \begin{algorithm}[H]
 \caption{Agent control loop}
@@ -53,4 +56,4 @@ There exist multiple architectures that can be used to build an agent capable of
 \end{algorithmic}
 \end{algorithm}
 
-A belief set $B$ is updated after every environment communication, and it is then used to compute the desires set $D$ which is filterd to create the intentions set $I$. Finally, the intentions set is used in combination with the belief set to create a plan $\pi$ to satisfy all the intentions. The plan is then execute action by action $\alpha$. Once the agent senses new information from the environment, the belief set, the intentions set, and the desires set are updated. After this update, the agent can decide whether to generate a new plan or stick with the current one.
+After each communication with the environment, the belief set, denoted as $B$, undergoes an update. Subsequently, the desires set, referred to as $D$, is computed based on the updated belief set and then filtered to generate the intentions set, denoted as $I$. The intentions set, in conjunction with the belief set, is utilized to formulate a comprehensive plan, denoted as $\pi$, which aims to fulfill all the intentions. This plan is then executed incrementally, action by action, represented as $\alpha$. Whenever the agent receives new information from the environment, the belief set, intentions set, and desires set are updated accordingly. Following this update, the agent can decide whether to generate a new plan or adhere to the existing one.

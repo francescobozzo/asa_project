@@ -1,21 +1,20 @@
 # Single agent implementation {#sec:single-agent}
-Given the complexity of the environment, several ad-hoc solutions have been implemented to overcome different difficulties and challenges.
+Considering the intricate nature of the environment, a multitude of tailored solutions have been implemented to address various complexities, difficulties, and challenges encountered.
 
 ## Manhattan distance {#sec:manhattan-distance}
-The *Manhattan distance* is function that can provide a quick estimation of the distance between two points.
+The Manhattan distance is a mathematical function that offers a rapid estimation of the distance between two points. It is calculated by summing the absolute differences between the respective x-coordinates and y-coordinates of the two points:
 
 $$
 d_{ab} = | b_x - a_x | + | b_y - a_y |
 $$
 
-Even though this function might be insufficient in the Deliveroo game since maps can have non-walkable tiles, it is still a decent and fast to compute heuristic that can be used to approximate distances.
+While this function may not be fully suitable for the Deliveroo game due to the presence of non-walkable tiles on the maps, it serves as a reasonable and computationally efficient heuristic for approximating distances in certain cases.
 
 ## Problem parameters estimation {#sec:problem-parameters-estimation}
-
-As explained in Section {@sec:deliveroo}, multiple parameters can be modified during the game initialization. While some of them are explicitly communicated to the agent, others are obscure and can be only estimated. For this reason, in order to build a more precise player reward estimation, we developed a learning meachnism to approximate the player speed and parcel reward decay over time.
+As detailed in Section {@sec:deliveroo}, various parameters can be adjusted during the initialization of the game. While certain parameters are directly communicated to the agent, others remain obscure and can only be estimated. To enhance the accuracy of estimating player rewards, we have implemented a learning mechanism aimed at approximating the player's speed and the decay of parcel rewards over time. This mechanism enables us to build a more precise estimation for optimizing player rewards.
 
 ### Player speed {#sec:player-speed}
-When our agent moves in the map, it is able to track its position over time: in this way, by using the historical positions alonside with timestamps the agent can estimate its own speed by using the following algorithm:
+During the agent's movement within the map, it maintains a record of its position over time. This historical positional data, along with corresponding timestamps, allows the agent to estimate its own speed using the following algorithm:
 
 \begin{algorithm}[H]
 \caption{Player speed estimation}
@@ -34,10 +33,10 @@ When our agent moves in the map, it is able to track its position over time: in 
 \end{algorithmic}
 \end{algorithm}
 
-Where $\phi$ is the learning rate hyper-parameter that can be used to regulate the impact of the last measured instant speed with respect to its historical value.
+Here, $\phi$ represents the learning rate hyper-parameter, which can be utilized to control the influence of the most recent measured instantaneous speed in relation to its historical value.
 
 ### Parcel decay {#sec:parcel-decay}
-In addition to the agent speed estiamtion, our agents are able to estimate the parcel reward decay over time. Similarly to the player speed estimation, the parcel decay is computed from timestamp differences, where each timestamp is associated to a sensed reward update of a visible parcel.
+Apart from estimating the agent's speed, our agents are also capable of estimating the decay of parcel rewards over time. Similar to the player speed estimation, the parcel decay is calculated based on differences in timestamps. Each timestamp is associated with a sensed reward update of a visible parcel, allowing us to estimate the decay of the parcel rewards as time progresses.
 
 \begin{algorithm}[H]
 \caption{Get parcel decay estimation}
@@ -69,35 +68,37 @@ In addition to the agent speed estiamtion, our agents are able to estimate the p
 \end{algorithmic}
 \end{algorithm}
 
-Where $\phi_2$ is the learning rate and  can be used to regulate the contribution of the past estimations with respect to the current estimated parcel decay.
+Here, $\phi_2$ represents the learning rate, which controls the contribution of past estimations relative to the current estimated parcel decay. It allows us to regulate the influence of previous estimations when updating and refining the estimation of the parcel decay over time.
 
 ## Probabilisitic model {#sec:probabilistic-model}
-In the environment there may be multiple competitive agents, and their ability of picking up parcels highly influences the value of a parcel. For this reason, we have devised a penalty value based on a probabilistic model capable of taking into consideration the possible opponents' plans.
+Within the environment, multiple competitive agents coexist, and their effectiveness in picking up parcels significantly impacts the value of each individual parcel. To address this, we have developed a penalty value based on a probabilistic model that takes into account the potential plans of other competing agents.
 
-The main idea behind the probabilistic model is the following assertion: "if there is a parcel and I am the closest agent I can reach it faster than any other agents, consequentially that parcel should be taken more into consideration, even if its value is lower than other further parcels". More formally:
+The underlying concept behind this probabilistic model can be summarized as follows: "If there is a parcel available and I am the closest agent to it, I have a higher probability of reaching and acquiring it faster than any other agents. Consequently, this parcel should be given more weight and consideration, even if its assigned value is lower than that of other parcels located further away." This assertion can be formulated more formally as follows:
 
 $$
 \text{penalty probability} = \frac{\sum_{a \in \mathcal{A}} \frac{d_{max} - d_{pa}}{d_{max}}}{|A|}
 $$
 
-with $\mathcal{A}$ the set of opponent agents, $d_{max}$ the maximum distance betweent the parcel and the union between oppoents agents, main player, and cooperative agents, $d_{pa}$ the distance parcel oppenent agent.
-
+Here, we denote $\mathcal{A}$ as the set of opponent agents, $d_{max}$ as the maximum distance between the parcel and the collective group comprising opponent agents, the main player, and cooperative agents. Additionally, $d_{pa}$ represents the distance between the parcel and an opponent agent.
 
 ## Potential parcel score {#sec:potential-parcel-score}
-The decision process behind the parcel selection is one of the key elements when defining a good agent. Many elements and metrics have been taken into consideration to better estimate the potential reward gain of a parcel. More formally, out agents compute the final reward as:
+The process of parcel selection plays a crucial role in defining an effective agent. To accurately estimate the potential reward gain of a parcel, our agents consider various elements and metrics. Formally, the final reward for a parcel is computed as follows:
 
 $$
 r_f = r - \left (d_{ap} * \frac{s_a}{decay}\right ) - \left (d_{min} * \frac{s_a}{decay}\right ) - r * \text{penalty probability}
 $$
 
-where $d_{ap}$ is the distance between the agent and the parcel, $s_a$ is the estimatated speed, $d_{min}$ is the minimum distance between the parcel and the closest delivery zone, and $\text{penalty probability}$ is the probability computed on Section {@sec:probabilistic-model}.
+Here, $d_{ap}$ represents the distance between the agent and the parcel, $s_a$ denotes the estimated speed of the agent, $d_{min}$ represents the minimum distance between the parcel and the nearest delivery zone, and $\text{penalty probability}$ corresponds to the probability calculated using the probabilistic model discussed in Section {@sec:probabilistic-model}.
 
-The resulting formula takes into account multiple factors:
-- the agent reward that is spent to approach the parcel and delivery it to the closest delivery zone (minimum cost to deliver that package)
-- rough estimation of other agents' intentions through their distance from parcels by using a probabilistic model
+The resulting formula takes into consideration multiple factors, including:
+
+- The reward that the agent expends to approach the parcel and deliver it to the nearest delivery zone, which represents the minimum cost associated with delivering that particular parcel.
+- An approximate estimation of other agents' intentions based on their distances from the parcels, incorporating a probabilistic model.
 
 ## Distances cache {#sec:distance-cache}
-To save computation power and to provide a more precise reward estimation, a cache is mantanied to store distances between tiles across the map. Every time a plan is generated, the distance between the starting point and any other tile in the path is stored in the cache. Since this approach does not guarantee that the generated path is the shorted route between two tiles, cache entries are updated once a smaller value is found. Therefore the caching approach is meant to improve over time as a sort of learning mechanism. In general, the cache is used many times in the codebase: in case of a cache miss, the agent uses the Manhattan distance as fallback.
+In order to optimize computational efficiency and enhance the accuracy of reward estimation, a cache is maintained to store distances between tiles throughout the map. Whenever a plan is generated, the distance between the starting point and any other tile along the path is stored in the cache. However, it should be noted that this approach does not guarantee the shortest route between two tiles. As a result, cache entries are updated whenever a smaller distance value is discovered. This caching mechanism acts as a form of learning, gradually improving over time.
+
+Throughout the codebase, the cache is utilized in numerous instances. In the event of a cache miss, the agent resorts to using the Manhattan distance as a fallback measure. By employing this caching strategy, the goal is to strike a balance between computation efficiency and accurate reward estimation.
 
 ## Replan {#sec:replan}
-Since Deliveroo is a dynamic game with potentially multiple agents acting at the same time, we implemented a mechanism replan the current agent's actions when it fails to perform a move for a specific amount of time. This functionality enables agents to avoid them from stucking in narrow and crowded areas of the map. 
+As Deliveroo is a dynamic game that involves simultaneous actions from multiple agents, we have implemented a mechanism to replan the actions of the current agent if it fails to execute a move within a specific time frame. This functionality allows agents to prevent getting stuck in narrow or crowded areas of the map. By triggering a replanning process when necessary, agents can adapt their actions and navigate through challenging situations more effectively.
