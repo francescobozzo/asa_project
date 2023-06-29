@@ -6,7 +6,7 @@ In the field of Computer Science, the term "agent" refers to an individual situa
 
 Communication models between agents and their environments vary depending on the specific characteristics of the environment and the agent itself. Generally, an agent perceives observations from the environment through sensors and carries out actions on the environment using actuators.
 
-Autonomy is a fundamental characteristic of an agent. The internal decision-making process of an agent, often referred to as its "brain," should be capable of handling decisions with or without collected information. Furthermore, it should be able to adapt and evolve in response to potential changes in requirements.
+Autonomy is a fundamental characteristic of an agent. The internal decision-making process of an agent, often referred to as its "brain", should be capable of handling decisions with or without collected information. Furthermore, it should be able to adapt and evolve in response to potential changes in requirements.
 
 Agents can be designed to solve tasks or goals. Task-oriented agents focus on accomplishing smaller objectives that contribute to the achievement of a larger final goal. On the other hand, goal-oriented agents receive a specific goal and autonomously determine a list of tasks necessary to fulfill the assigned goal.
 
@@ -23,7 +23,7 @@ On the other hand, a cooperative system consists of numerous agents working toge
 An essential aspect to consider when implementing a cooperative system is the communication mechanism. It should prioritize speed, reliability, and minimize delays as much as possible.
 
 ## Architecture {#sec:architecture}
-There are several architectural options available for constructing an agent with the ability to operate within a specific environment. For our purposes, we have chosen to adopt the architecture outlined in the following pseudocode.
+There are several architectural options available for constructing an agent with the ability to operate within a specific environment. For our purposes, we have chosen to adopt the BDI architecture outlined in the following pseudocode.
 
 \begin{algorithm}[H]
 \caption{Agent control loop}
