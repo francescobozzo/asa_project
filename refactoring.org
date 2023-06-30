@@ -1,0 +1,17 @@
+* Refactoring study
+
+** X-Y coordinates problem
+We should have a conversion function between coordinates provided by Deliveroo and ~Tile~ objects, we should base all of our code on tiles.
+
+A good spot for this function could be [[file:src/belief-sets/utils.ts][utils.ts file]].
+
+** PDDL planner
+The PDDL planner class in the [[file:src/belief-sets/pddl-planner.ts][belief-set]] directory can be reused for the PDDL management, it contains almost everything and it already has flags to turn on and off different strategies. Moreover it exposes only one public method, all other elements (both members and methods) are private.
+
+Maybe a would move some logic from the class into:
+
+- [[file:src/belief-sets/agent.ts][agent.ts file]]
+- [[file:src/belief-sets/tile.ts][tile.ts]]
+
+*** Migration strategy
+- the dynamic putdown action construction function should be moved in the [[file:src/belief-sets/pddl.ts][pddl.ts]]
