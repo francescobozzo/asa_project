@@ -1,5 +1,5 @@
-import Agent from '../belief-sets/agent.js';
-import Parcel from '../belief-sets/parcel.js';
+import { Agent } from '../belief-sets/agent.js';
+import { Parcel } from '../belief-sets/parcel.js';
 import Tile from '../belief-sets/tile.js';
 import { Action } from '../belief-sets/utils.js';
 import Message, { MessageType } from './Message.js';

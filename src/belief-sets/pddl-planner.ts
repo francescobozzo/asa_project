@@ -1,6 +1,6 @@
 import { PddlAction } from '@unitn-asa/pddl-client';
-import Agent from './agent.js';
-import Parcel from './parcel.js';
+import { Agent } from './agent.js';
+import { Parcel } from './parcel.js';
 import { PDDLProblemContext, getPlan } from './pddl.js';
 import Tile from './tile.js';
 import { ManhattanDistanceFromYX, yxToPddl } from './utils.js';

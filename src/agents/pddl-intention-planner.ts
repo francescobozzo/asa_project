@@ -1,8 +1,8 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import { PddlAction } from '@unitn-asa/pddl-client';
 import log from 'loglevel';
-import Agent from '../belief-sets/agent.js';
-import Parcel from '../belief-sets/parcel.js';
+import { Agent } from '../belief-sets/agent.js';
+import { Parcel } from '../belief-sets/parcel.js';
 import { getPlan } from '../belief-sets/pddl.js';
 import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
 import AbstractIntentionPlanner from './abstract-intention-planner.js';

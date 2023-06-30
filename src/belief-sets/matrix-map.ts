@@ -3,8 +3,8 @@ import { PDDLProblemContext } from './pddl.js';
 import Tile from './tile.js';
 import { arrayAverage, getRandomElementFromArray, setDifference, setUnion } from './utils.js';
 
-import Agent from './agent.js';
-import Parcel from './parcel.js';
+import { Agent } from './agent.js';
+import { Parcel } from './parcel.js';
 
 class DeliverooMap {
   private map: Tile[][] = [];

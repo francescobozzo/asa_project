@@ -67,6 +67,16 @@ function pddlToyx(pddlObject: string): number[] {
   return [parseInt(y.slice(1)), parseInt(x.slice(1))];
 }
 
+function roundCoordinates(x: number, y: number) {
+  if (Math.round(x * 10) % 10 === 4 || Math.round(y * 10) % 10 === 4) {
+    return { roundX: Math.ceil(x), roundY: Math.ceil(y) };
+  } else if (Math.round(x * 10) % 10 === 6 || Math.round(y * 10) % 10 === 6) {
+    return { roundX: Math.floor(x), roundY: Math.floor(y) };
+  }
+
+  return { roundX: x, roundY: y };
+}
+
 export {
   Action,
   Plan,
@@ -81,4 +91,5 @@ export {
   setUnion,
   yxToPddl,
   pddlToyx,
+  roundCoordinates,
 };

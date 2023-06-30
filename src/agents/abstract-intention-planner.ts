@@ -1,7 +1,7 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import log from 'loglevel';
 import DeliverooMap from '../belief-sets/matrix-map.js';
-import Parcel from '../belief-sets/parcel.js';
+import { Parcel } from '../belief-sets/parcel.js';
 import { Planner } from '../belief-sets/pddl-planner.js';
 import Tile from '../belief-sets/tile.js';
 import { Action, arrayAverage } from '../belief-sets/utils.js';

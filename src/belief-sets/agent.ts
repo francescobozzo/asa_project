@@ -1,4 +1,6 @@
-class Agent {
+import { roundCoordinates } from './utils.js';
+
+export class Agent {
   constructor(
     public id: string,
     public name: string,
@@ -14,6 +16,36 @@ class Agent {
     this.score = score;
     this.isVisible = isVisible;
   }
+
+  perceived(agent: any, isVisible: boolean) {
+    const rc = roundCoordinates(agent.x, agent.y);
+    this.update(rc.roundX, rc.roundY, agent.score, isVisible);
+  }
 }
 
-export default Agent;
+export class Agents {
+  private agents = new Map<string, Agent>();
+
+  senseAgents(agents: Agent[]) {
+    const viewedAgentIds = new Set<string>();
+
+    for (const agent of agents) {
+      viewedAgentIds.add(agent.id);
+      if (!this.agents.has(agent.id)) {
+        this.agents.set(agent.id, new Agent(agent.id, agent.name, agent.x, agent.y, agent.score, true));
+      } else {
+        this.agents.get(agent.id).perceived(agent, true);
+      }
+    }
+
+    for (const agentId of this.agents.keys()) {
+      if (!viewedAgentIds.has(agentId)) {
+        this.agents.get(agentId).isVisible = false;
+      }
+    }
+  }
+
+  print() {
+    console.log(this.agents);
+  }
+}
