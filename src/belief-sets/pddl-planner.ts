@@ -60,6 +60,7 @@ export class Planner {
       pddlProblem.addInitCondition(`(parcel ${yxToPddl(parcel.y, parcel.x)})`);
     }
 
+    pddlProblem.setGoal(goal);
     return new PDDLPlanPlanner(getPlan(pdllDomain, pddlProblem), parcelsToPick);
   }
 

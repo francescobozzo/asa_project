@@ -1,13 +1,21 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import Config from './config.js';
-import Carrier from './src/agents/Carrier.js';
+import Carrier from './src/agents/carrier.js';
 import { Agent } from './src/belief-sets/agent.js';
 import { Parcel } from './src/belief-sets/parcel.js';
 import Tile from './src/belief-sets/tile.js';
 import Message from './src/messages/Message.js';
 
+let actionErrors = 0;
+let actionInProgress = false;
 const client = new DeliverooApi(`http://localhost:${Config.Port}`, Config.Token);
-const carrier = new Carrier(client, Config.BrainType, Config.ParcelDecayLearningRate);
+const carrier = new Carrier(
+  client,
+  Config.BrainType,
+  Config.ParcelDecayLearningRate,
+  Config.MainPlayerSpeedLearningRate,
+  Config.AgentClock
+);
 
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   carrier.initMap(width, height, tiles);

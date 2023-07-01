@@ -95,7 +95,28 @@ export default class BeliefSet {
   }
 
   getMyPosition() {
-    return new Tile(this.me.x, this.me.y);
+    if (this.me) return new Tile(this.me.x, this.me.y);
+    return undefined;
+  }
+
+  getParcels() {
+    return this.parcels.getParcels();
+  }
+
+  getAgents() {
+    return this.agents.getAgents();
+  }
+
+  getDeliveryStations() {
+    return this.map.getDeliveryStations();
+  }
+
+  getParcelDecayEstimation() {
+    return this.parcelsDecayEstimation;
+  }
+
+  mapToPddlProblem() {
+    return this.map.toPddlProblem(this.me);
   }
 
   printMap() {

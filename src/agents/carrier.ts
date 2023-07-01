@@ -5,18 +5,51 @@ import BeliefSet from '../belief-sets/belief-set.js';
 import { Parcel } from '../belief-sets/parcel.js';
 import Message, { MessageType } from '../messages/Message.js';
 import MessageHandler from '../messages/MessageHandler.js';
-import IBrain from './IBrain.js';
+import IBrain from './brains/IBrain.js';
+import { arrayAverage } from '../belief-sets/utils.js';
+import log from 'loglevel';
+import PddlSingleAgent from './brains/PddlSingleAgent.js';
 
 export default class Carrier {
   private brain: IBrain;
   private beliefSet: BeliefSet;
   private messageHandler: MessageHandler;
   private leaderId: string;
+  private distanceCache: Map<string, number>;
+  private modifiedAt: Date[] = [];
+  private mainPlayerSpeedLR: number;
+  private mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
+  private parcelsToAvoidIds = new Set<string>();
 
-  constructor(client: DeliverooApi, brainType: BRAIN_TYPE, parcelDecayLR: number) {
+  constructor(
+    client: DeliverooApi,
+    brainType: BRAIN_TYPE,
+    parcelDecayLR: number,
+    mainPlayerSpeedLR: number,
+    agentClock: number
+  ) {
     this.beliefSet = new BeliefSet(parcelDecayLR);
     this.messageHandler = new MessageHandler(client);
+    this.mainPlayerSpeedLR = mainPlayerSpeedLR;
     this.initBrain(brainType);
+
+    setInterval(async () => {
+      const me = this.beliefSet.getMyPosition();
+      if (me)
+        this.brain.takeAction(
+          client,
+          me.x,
+          me.y,
+          this.beliefSet.getParcels(),
+          this.parcelsToAvoidIds,
+          this.beliefSet.getAgents(),
+          this.beliefSet.getDeliveryStations(),
+          this.distanceCache,
+          this.mainPlayerSpeedEstimation,
+          this.beliefSet.getParcelDecayEstimation(),
+          this.beliefSet.mapToPddlProblem()
+        );
+    }, agentClock);
   }
 
   initMap(width: number, height: number, tiles: any[]) {
@@ -37,6 +70,7 @@ export default class Carrier {
 
   senseYou(me: Agent) {
     this.beliefSet.senseYou(me);
+    this.updateMainPlayerSpeedEstimation();
   }
 
   senseMessage(message: Message) {
@@ -61,16 +95,16 @@ export default class Carrier {
         this.leaderId = leaderId;
         break;
 
-      case MessageType.ASKFORPLAN:
-        const requesterId = this.messageHandler.handleAskForPlan(message);
-        const requestedPlan = this.brain.computePlan();
-        this.messageHandler.sendPlan(
-          this.beliefSet.getMyId(),
-          requesterId,
-          this.beliefSet.getMyPosition(),
-          requestedPlan
-        );
-        break;
+      // case MessageType.ASKFORPLAN:
+      //   const requesterId = this.messageHandler.handleAskForPlan(message);
+      //   const requestedPlan = this.brain.computePlan();
+      //   this.messageHandler.sendPlan(
+      //     this.beliefSet.getMyId(),
+      //     requesterId,
+      //     this.beliefSet.getMyPosition(),
+      //     requestedPlan
+      //   );
+      //   break;
 
       case MessageType.PLAN:
         const returnedPlan = this.messageHandler.handlePlan(message);
@@ -100,6 +134,29 @@ export default class Carrier {
   }
 
   private initBrain(brainType: BRAIN_TYPE) {
-    this.brain = undefined;
+    switch (brainType) {
+      case BRAIN_TYPE.PddlSingleAgent:
+        this.brain = new PddlSingleAgent(true, 0.15, true, 10);
+        break;
+    }
+  }
+
+  private updateMainPlayerSpeedEstimation() {
+    const deltas = [];
+    if (this.modifiedAt.length > 1) {
+      for (let i = 1; i < this.modifiedAt.length; i++) {
+        deltas.push((this.modifiedAt[i].getTime() - this.modifiedAt[i - 1].getTime()) / 1000);
+      }
+    }
+
+    if (deltas.length > 0) {
+      const oldMainPlayerSpeedEstimation = this.mainPlayerSpeedEstimation;
+      const currentContribution = this.mainPlayerSpeedEstimation * (1 - this.mainPlayerSpeedLR);
+      const newContribution = arrayAverage(deltas) * this.mainPlayerSpeedLR;
+      this.mainPlayerSpeedEstimation = currentContribution + newContribution;
+      log.debug(
+        `DEBUG: main player estimation updated: ${oldMainPlayerSpeedEstimation} -> ${this.mainPlayerSpeedEstimation}`
+      );
+    }
   }
 }

@@ -47,6 +47,10 @@ export class Agents {
       }
   }
 
+  getAgents() {
+    return Array.from(this.agents.values());
+  }
+
   print() {
     console.log(this.agents);
   }

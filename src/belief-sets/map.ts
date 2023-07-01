@@ -8,6 +8,7 @@ import PddlProblem from '../pddl-client/PddlProblem.js';
 
 export default class GameMap {
   private map: Tile[][] = [];
+  private deliveryStations: Tile[] = [];
   private width: number;
   private height: number;
 
@@ -30,6 +31,7 @@ export default class GameMap {
       if (sensedTiles[i].delivery) {
         tile.isWalkable = true;
         tile.isDelivery = true;
+        this.deliveryStations.push(tile);
       } else {
         tile.isWalkable = true;
       }
@@ -98,6 +100,10 @@ export default class GameMap {
     }
 
     return new PddlProblem('deliveroo', inits, tileObjects, '');
+  }
+
+  getDeliveryStations() {
+    return this.deliveryStations;
   }
 
   print() {
