@@ -14,7 +14,7 @@ export enum MessageType {
   PLAN = 'plan',
 }
 
-class Message {
+export default class Message {
   constructor(
     public type: MessageType,
     public senderId: string,
@@ -48,5 +48,3 @@ class Message {
     return this.payload.actions ? this.payload.actions.map((action) => action as Action) : [];
   }
 }
-
-export default Message;
