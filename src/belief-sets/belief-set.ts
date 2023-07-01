@@ -7,23 +7,29 @@ export default class BeliefSet {
   private agents: Agents = new Agents();
   private parcels: Parcels = new Parcels();
   private me: Agent;
+  private parcelsDecayEstimation: number = 1;
+  private parcelDecayLR: number;
+
+  constructor(parcelDecayLR: number) {
+    this.parcelDecayLR = parcelDecayLR;
+  }
 
   initMap(width: number, height: number, sensedTiles: any[]) {
     this.map = new GameMap(width, height, sensedTiles);
   }
 
-  senseAgents(agents: Agent[]) {
-    this.agents.senseAgents(agents);
-    if (this.map) {
-      this.map.senseAgents(agents);
+  senseAgents(agents: Agent[], externalPerception: boolean) {
+    this.agents.senseAgents(agents, externalPerception);
+    if (this.map && this.me && !externalPerception) {
+      this.map.senseAgents(agents, this.me);
       this.map.print();
     }
   }
 
-  senseParcels(parcels: Parcel[]) {
-    this.parcels.senseParcels(parcels);
+  senseParcels(parcels: Parcel[], externalPerception: boolean) {
+    this.parcels.senseParcels(parcels, externalPerception);
     if (this.map) {
-      this.map.senseParcels(parcels);
+      this.map.senseParcels(this.parcels.getParcels());
       this.map.print();
     }
   }
@@ -51,6 +57,11 @@ export default class BeliefSet {
     }
 
     return [carriedScore, numCarriedParcels];
+  }
+
+  updateParcelDecayEstimation() {
+    const newEstimation = this.parcels.getParcelsDecayEstimation(this.parcelsDecayEstimation, this.parcelDecayLR);
+    if (newEstimation !== undefined) this.parcelsDecayEstimation = newEstimation;
   }
 
   printMap() {

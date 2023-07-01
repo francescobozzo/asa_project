@@ -6,7 +6,7 @@ import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 
 const client = new DeliverooApi(`http://localhost:${Config.Port}`, Config.Token);
 
-const beliefSet = new BeliefSet();
+const beliefSet = new BeliefSet(Config.ParcelDecayLearningRate);
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   beliefSet.initMap(width, height, tiles);
   beliefSet.printMap();
@@ -14,14 +14,14 @@ client.socket.on('map', (width: number, height: number, tiles: any) => {
 
 client.socket.on('agents sensing', (agents: any[]) => {
   const parsedAgents = agents.map((agent) => new Agent(agent.id, agent.me, agent.x, agent.y, agent.score, true));
-  beliefSet.senseAgents(parsedAgents);
+  beliefSet.senseAgents(parsedAgents, false);
 });
 
 client.socket.on('parcels sensing', (parcels: any) => {
   const parsedParcels = parcels.map(
     (parcel) => new Parcel(parcel.id, parcel.x, parcel.y, parcel.carriedBy, parcel.reward, true)
   );
-  beliefSet.senseParcels(parcels);
+  beliefSet.senseParcels(parsedParcels, false);
 });
 
 client.socket.on('you', (me: any) => {

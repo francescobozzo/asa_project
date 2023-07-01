@@ -1,4 +1,4 @@
-import { roundCoordinates } from './utils.js';
+import { arrayAverage, roundCoordinates } from './utils.js';
 
 export class Parcel {
   public modifiedAt: Date[] = [];
@@ -42,23 +42,33 @@ export class Parcel {
 export class Parcels {
   private parcels = new Map<string, Parcel>();
 
-  senseParcels(parcels: Parcel[]) {
+  senseParcels(parcels: Parcel[], externalPerception: boolean) {
     const viewedParcelIds = new Set<string>();
 
     for (const parcel of parcels) {
       viewedParcelIds.add(parcel.id);
       if (!this.parcels.has(parcel.id)) {
-        this.parcels.set(parcel.id, new Parcel(parcel.id, parcel.x, parcel.y, parcel.carriedBy, parcel.reward, true));
+        const isVisible = !externalPerception;
+        this.parcels.set(
+          parcel.id,
+          new Parcel(parcel.id, parcel.x, parcel.y, parcel.carriedBy, parcel.reward, isVisible)
+        );
       } else {
-        this.parcels.get(parcel.id).perceived(parcel, true);
+        const isVisible = externalPerception ? this.parcels.get(parcel.id).isVisible : true;
+        this.parcels.get(parcel.id).perceived(parcel, isVisible);
       }
     }
 
-    for (const parcelId of this.parcels.keys()) {
-      if (!viewedParcelIds.has(parcelId)) {
-        this.parcels.get(parcelId).isVisible = false;
+    if (!externalPerception)
+      for (const parcelId of this.parcels.keys()) {
+        if (!viewedParcelIds.has(parcelId)) {
+          this.parcels.get(parcelId).isVisible = false;
+        }
       }
-    }
+  }
+
+  getParcels() {
+    return Array.from(this.parcels.values());
   }
 
   getParcelsByAgentId(agentId: string) {
@@ -68,6 +78,20 @@ export class Parcels {
       if (parcel.isVisible && parcel.carriedBy === agentId) parcels.push(parcel);
 
     return parcels;
+  }
+
+  getParcelsDecayEstimation(currentEstimation: number, parcelDecayLR: number) {
+    let deltas = [];
+    for (const parcel of this.parcels.values()) {
+      deltas = deltas.concat(parcel.getParcelDecayEstimation());
+    }
+
+    if (deltas.length > 0) {
+      const currentContribution = currentEstimation * (1 - parcelDecayLR);
+      const newContribution = arrayAverage(deltas) * parcelDecayLR;
+      return currentContribution + newContribution;
+    }
+    return undefined;
   }
 
   print() {

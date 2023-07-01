@@ -20,6 +20,10 @@ class Tile {
     else if (!this.isWalkable) return ' ';
     else return `${this.value}`;
   }
+
+  toPddl(): string {
+    return `y${this.y}_x${this.x}`;
+  }
 }
 
 export default Tile;

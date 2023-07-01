@@ -1,3 +1,4 @@
+import { get } from 'http';
 import Tile from './tile.js';
 
 enum Action {
@@ -77,6 +78,26 @@ function roundCoordinates(x: number, y: number) {
   return { roundX: x, roundY: y };
 }
 
+function getNeighboursFromTile(tile: Tile, map: Tile[][]) {
+  const neighbors: Tile[] = [];
+  const x = tile.x;
+  const y = tile.y;
+
+  if (x > 0 && this.map[x - 1][y].isWalkable && !this.map[x - 1][y].isOccupied) neighbors.push(this.map[x - 1][y]);
+  if (x < this.map.length - 1 && this.map[x + 1][y].isWalkable && !this.map[x + 1][y].isOccupied)
+    neighbors.push(this.map[x + 1][y]);
+  if (y > 0 && this.map[x][y - 1].isWalkable && !this.map[x][y - 1].isOccupied) neighbors.push(this.map[x][y - 1]);
+  if (y < this.map[x].length - 1 && this.map[x][y + 1].isWalkable && !this.map[x][y + 1].isOccupied)
+    neighbors.push(this.map[x][y + 1]);
+
+  return neighbors;
+}
+
+function getNeighbours(x: number, y: number, map: Tile[][]) {
+  const tile = new Tile(x, y);
+  return getNeighboursFromTile(tile, map);
+}
+
 export {
   Action,
   Plan,
@@ -92,4 +113,6 @@ export {
   yxToPddl,
   pddlToyx,
   roundCoordinates,
+  getNeighbours,
+  getNeighboursFromTile,
 };

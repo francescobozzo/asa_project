@@ -26,23 +26,25 @@ export class Agent {
 export class Agents {
   private agents = new Map<string, Agent>();
 
-  senseAgents(agents: Agent[]) {
+  senseAgents(agents: Agent[], externalPerception: boolean) {
     const viewedAgentIds = new Set<string>();
 
     for (const agent of agents) {
       viewedAgentIds.add(agent.id);
       if (!this.agents.has(agent.id)) {
-        this.agents.set(agent.id, new Agent(agent.id, agent.name, agent.x, agent.y, agent.score, true));
+        this.agents.set(agent.id, new Agent(agent.id, agent.name, agent.x, agent.y, agent.score, !externalPerception));
       } else {
-        this.agents.get(agent.id).perceived(agent, true);
+        const isVisible = externalPerception ? this.agents.get(agent.id).isVisible : true;
+        this.agents.get(agent.id).perceived(agent, isVisible);
       }
     }
 
-    for (const agentId of this.agents.keys()) {
-      if (!viewedAgentIds.has(agentId)) {
-        this.agents.get(agentId).isVisible = false;
+    if (!externalPerception)
+      for (const agentId of this.agents.keys()) {
+        if (!viewedAgentIds.has(agentId)) {
+          this.agents.get(agentId).isVisible = false;
+        }
       }
-    }
   }
 
   print() {

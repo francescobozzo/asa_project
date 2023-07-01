@@ -1,8 +1,10 @@
 import Tile from './tile.js';
 import log from 'loglevel';
-import { roundCoordinates, setIntersection } from './utils.js';
+import { getNeighboursFromTile, roundCoordinates, setIntersection } from './utils.js';
 import { Parcel, Parcels } from './parcel.js';
 import { Agent } from './agent.js';
+import { get } from 'http';
+import PddlProblem from '../pddl-client/PddlProblem.js';
 
 export default class GameMap {
   private map: Tile[][] = [];
@@ -36,12 +38,8 @@ export default class GameMap {
     log.info('INFO : map created');
   }
 
-  print() {
-    console.log(this.toString());
-  }
-
   senseParcels(parcels: Parcel[]) {
-    for (let y = 0; y < this.width; y++) {
+    for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) this.setTileValue(x, y, 0);
     }
 
@@ -50,19 +48,60 @@ export default class GameMap {
     }
   }
 
-  senseAgents(agents: Agent[]) {
-    for (let y = 0; y < this.width; y++) {
+  senseAgents(agents: Agent[], me: Agent) {
+    for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) this.freeTile(x, y);
     }
 
     for (const agent of agents) {
       this.occupyTile(agent.x, agent.y, false);
     }
+
+    this.occupyTile(me.x, me.y, true);
   }
 
   senseYou(oldX: number, oldY: number, me: Agent) {
     this.freeTile(oldX, oldY);
     this.occupyTile(me.x, me.y, true);
+  }
+
+  toPddlProblem(leaderAgent: Agent) {
+    const tileObjects: string[] = [];
+    const inits: string[] = [];
+
+    for (let i = 0; i < this.height; i++) {
+      for (let j = 0; j < this.width; j++) {
+        const current = this.map[i][j];
+        tileObjects.push(current.toPddl());
+
+        if (!current.isWalkable) continue;
+
+        // if (current.hasParcel) {
+        //   predicates.push(`(parcel ${this.tileToPddl(current)})`);
+        // }
+
+        if (current.isDelivery) {
+          inits.push(`delivery ${current.toPddl()}`);
+        }
+
+        for (const neighbor of getNeighboursFromTile(current, this.map)) {
+          inits.push(`can-move ${current.toPddl()} ${neighbor.toPddl()}`);
+
+          if (
+            (!leaderAgent && current.isMainPlayer) ||
+            (leaderAgent && leaderAgent.x === current.x && leaderAgent.y === current.y)
+          ) {
+            inits.push(`can-move ${neighbor.toPddl()} ${current.toPddl()}`);
+          }
+        }
+      }
+    }
+
+    return new PddlProblem('deliveroo', inits, tileObjects, '');
+  }
+
+  print() {
+    console.log(this.toString());
   }
 
   private occupyTile(x: number, y: number, isMainPlayer: boolean) {
