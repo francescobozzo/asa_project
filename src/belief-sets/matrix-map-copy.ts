@@ -1,7 +1,7 @@
 import log from 'loglevel';
 import { PDDLProblemContext } from './pddl.js';
 import Tile from './tile.js';
-import { arrayAverage, getRandomElementFromArray, setDifference, setUnion } from './utils.js';
+import { arrayAverage, getRandomElementFromArray } from './utils.js';
 
 import { Agent } from './agent.js';
 import { Parcel } from './parcel.js';

@@ -1,8 +1,8 @@
 import log from 'loglevel';
-import { PDDLProblemContext } from './pddl.js';
 import Tile from './tile.js';
 import { arrayAverage, getRandomElementFromArray, setDifference, setUnion } from './utils.js';
 
+import PddlProblem from '../pddl-client/PddlProblem.js';
 import { Agent } from './agent.js';
 import { Parcel } from './parcel.js';
 
@@ -336,7 +336,6 @@ class DeliverooMap {
   // PUBLIC EXPORTER
 
   toPddlDomain(mainAgent: Agent) {
-    console.log('Generating pddl domain');
     const tileObjects: string[] = [];
     const predicates: string[] = [];
     const height = this.map.length;
@@ -355,24 +354,23 @@ class DeliverooMap {
         // }
 
         if (current.isDelivery) {
-          predicates.push(`(delivery ${this.tileToPddl(current)})`);
+          predicates.push(`delivery ${this.tileToPddl(current)}`);
         }
 
         for (const neighbor of this.getNeighbors(current)) {
-          predicates.push(`(can-move ${this.tileToPddl(current)} ${this.tileToPddl(neighbor)})`);
+          predicates.push(`can-move ${this.tileToPddl(current)} ${this.tileToPddl(neighbor)}`);
 
           if (
             (!mainAgent && current.isMainPlayer) ||
             (mainAgent && mainAgent.x === current.x && mainAgent.y === current.y)
           ) {
-            predicates.push(`(can-move ${this.tileToPddl(neighbor)} ${this.tileToPddl(current)})`);
+            predicates.push(`can-move ${this.tileToPddl(neighbor)} ${this.tileToPddl(current)}`);
           }
         }
       }
     }
 
-    const objects = tileObjects.join(' ');
-    return new PDDLProblemContext(objects, predicates);
+    return new PddlProblem('deliveroo', predicates, tileObjects, '');
   }
 
   tileToPddl(tile: Tile) {

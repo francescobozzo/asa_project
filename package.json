@@ -14,8 +14,8 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^20.1.1",
+    "@types/node-fetch": "^2.6.4",
     "@unitn-asa/deliveroo-js-client": "^0.0.34",
-    "@unitn-asa/pddl-client": "^0.0.34",
     "dotenv": "^16.0.3",
     "js-sdsl": "^4.4.0",
     "loglevel": "^1.8.1",

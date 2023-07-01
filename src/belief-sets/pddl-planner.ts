@@ -1,7 +1,9 @@
-import { PddlAction } from '@unitn-asa/pddl-client';
+import PddlAction from '../pddl-client/PddlAction.js';
+import PddlDomain from '../pddl-client/PddlDomain.js';
+import PddlProblem from '../pddl-client/PddlProblem.js';
 import { Agent } from './agent.js';
 import { Parcel } from './parcel.js';
-import { PDDLProblemContext, getPlan } from './pddl.js';
+import { getPlan } from './pddl.js';
 import Tile from './tile.js';
 import { ManhattanDistanceFromYX, yxToPddl } from './utils.js';
 
@@ -30,7 +32,8 @@ export class Planner {
   }
 
   compute(
-    pddlProblemContext: PDDLProblemContext,
+    pdllDomain: PddlDomain,
+    pddlProblem: PddlProblem,
     parcels: Parcel[],
     agents: Agent[],
     playerSpeedEstimation: number,
@@ -46,17 +49,18 @@ export class Planner {
       trafficMap
     );
 
-    pddlProblemContext.actions.push(this.buildPDDLPutdownAction(parcelsToPick));
+    pdllDomain.addAction(this.buildPDDLPutdownAction(parcelsToPick));
+
     let goal = 'and (delivered)';
     if (parcelsToPick.length === 0) goal = `and (at ${yxToPddl(tileForRandomMovement.y, tileForRandomMovement.x)})`;
 
-    pddlProblemContext.predicates.push(`(at ${yxToPddl(this.agent.y, this.agent.x)})`);
+    pddlProblem.addInitCondition(`at ${yxToPddl(this.agent.y, this.agent.x)}`);
 
     for (const parcel of parcelsToPick) {
-      pddlProblemContext.predicates.push(`(parcel ${yxToPddl(parcel.y, parcel.x)})`);
+      pddlProblem.addInitCondition(`(parcel ${yxToPddl(parcel.y, parcel.x)})`);
     }
 
-    return new PDDLPlanPlanner(getPlan(pddlProblemContext, goal), parcelsToPick);
+    return new PDDLPlanPlanner(getPlan(pdllDomain, pddlProblem), parcelsToPick);
   }
 
   private computeParcelsToPick(
@@ -104,14 +108,13 @@ export class Planner {
     return parcelsToPick;
   }
 
-  private buildPDDLPutdownAction(parcels: Parcel[]): string {
+  private buildPDDLPutdownAction(parcels: Parcel[]) {
     const parcelPDDLTiles = parcels.map((p) => `(carrying ${yxToPddl(p.y, p.x)})`);
     return new PddlAction(
       'putdown',
-      '?position',
-      `and (at ?position) (delivery ?position)${parcels.length > 0 ? ' ' + parcelPDDLTiles.join(' ') : ''}`,
-      'and (delivered)',
-      async (position) => console.log('exec putdown parcel', position)
+      ['?position'],
+      `(and (at ?position) (delivery ?position)${parcels.length > 0 ? ' ' + parcelPDDLTiles.join(' ') : ''})`,
+      '(and (delivered))'
     );
   }
 

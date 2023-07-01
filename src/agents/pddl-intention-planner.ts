@@ -1,15 +1,14 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
-import { PddlAction } from '@unitn-asa/pddl-client';
 import log from 'loglevel';
 import { Agent } from '../belief-sets/agent.js';
 import { Parcel } from '../belief-sets/parcel.js';
-import { getPlan } from '../belief-sets/pddl.js';
-import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
-import AbstractIntentionPlanner from './abstract-intention-planner.js';
-import { PDDLPlanPlanner, Planner } from '../belief-sets/pddl-planner.js';
+import { getPlan, moveAction, pickupAction } from '../belief-sets/pddl.js';
 import Tile from '../belief-sets/tile.js';
-import { kMaxLength } from 'buffer';
-import { trace } from 'console';
+import { Action, ManhattanDistance, computeAction } from '../belief-sets/utils.js';
+import PddlAction from '../pddl-client/PddlAction.js';
+import PddlDomain from '../pddl-client/PddlDomain.js';
+import PddlPredicate from '../pddl-client/PddlPredicate.js';
+import AbstractIntentionPlanner from './abstract-intention-planner.js';
 
 class PddlIntentionPlanner extends AbstractIntentionPlanner {
   private isComputing: boolean = false;
@@ -35,10 +34,23 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
 
   async getPlanFromPlanner(agentId: string) {
     const agent = this.beliefSet.getAgents().get(agentId);
-    const pddlProblemContext = this.beliefSet.toPddlDomain(agent);
+    const pddlProblem = this.beliefSet.toPddlDomain(agent);
     if (this.agentToPlanTiles.has(agentId)) {
       this.decreaseTrafficMap(this.agentToPlanTiles.get(agentId));
     }
+    const pddlDomain = new PddlDomain(
+      'deliveroo',
+      [],
+      [
+        new PddlPredicate('at', ['?fr']),
+        new PddlPredicate('can-move', ['?fr', '?to']),
+        new PddlPredicate('parcel', ['?position']),
+        new PddlPredicate('delivery', ['?position']),
+        new PddlPredicate('carrying', ['?position']),
+        new PddlPredicate('delivered', []),
+      ],
+      [moveAction, pickupAction]
+    );
 
     const parcels = this.beliefSet
       .getVisibleParcels()
@@ -47,7 +59,8 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     const planPlanner = this.agentToPlanner
       .get(agentId)
       .compute(
-        pddlProblemContext,
+        pddlDomain,
+        pddlProblem,
         parcels,
         Array.from(this.beliefSet.getAgents().values()),
         this.mainPlayerSpeedEstimation,
@@ -108,10 +121,9 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     );
     return new PddlAction(
       'putdown',
-      '?position',
-      `and (at ?position) (delivery ?position)${parcels.length > 0 ? ' ' + parcelPDDLTiles.join(' ') : ''}`,
-      'and (delivered)',
-      async (position) => console.log('exec putdown parcel', position)
+      ['?position'],
+      `(and (at ?position) (delivery ?position)${parcels.length > 0 ? ' ' + parcelPDDLTiles.join(' ') : ''})`,
+      '(and (delivered))'
     );
   }
 
@@ -156,23 +168,35 @@ class PddlIntentionPlanner extends AbstractIntentionPlanner {
     }
     this.isComputing = true;
 
-    const pddlProblemContext = this.beliefSet.toPddlDomain(undefined);
-    pddlProblemContext.actions.push(this.buildPDDLPutdownAction(this.parcelsToPick));
-    let goal = 'and (delivered)';
-    if (this.parcelsToPick.length === 0)
-      goal = `and (at ${this.beliefSet.tileToPddl(this.beliefSet.getRandomValidTile())})`;
+    const pddlProblem = this.beliefSet.toPddlDomain(undefined);
+    const pddlDomain = new PddlDomain(
+      'deliveroo',
+      [],
+      [
+        new PddlPredicate('at', ['?fr']),
+        new PddlPredicate('can-move', ['?fr', '?to']),
+        new PddlPredicate('parcel', ['?position']),
+        new PddlPredicate('delivery', ['?position']),
+        new PddlPredicate('carrying', ['?position']),
+        new PddlPredicate('delivered', []),
+      ],
+      [moveAction, pickupAction]
+    );
 
-    pddlProblemContext.predicates.push(`(at ${this.beliefSet.tileToPddl(this.beliefSet.getTile(this.x, this.y))})`);
+    pddlDomain.addAction(this.buildPDDLPutdownAction(this.parcelsToPick));
+    let goal = '(and (delivered))';
+    if (this.parcelsToPick.length === 0)
+      goal = `(and (at ${this.beliefSet.tileToPddl(this.beliefSet.getRandomValidTile())}))`;
+
+    pddlProblem.addInitCondition(`at ${this.beliefSet.tileToPddl(this.beliefSet.getTile(this.x, this.y))}`);
 
     for (const parcel of this.parcelsToPick) {
-      pddlProblemContext.predicates.push(
-        `(parcel ${this.beliefSet.tileToPddl(this.beliefSet.getTile(parcel.x, parcel.y))})`
-      );
+      pddlProblem.addInitCondition(`parcel ${this.beliefSet.tileToPddl(this.beliefSet.getTile(parcel.x, parcel.y))}`);
     }
 
     // const oldConsoleLogFunction = console.log;
     // console.log = (...args) => {};
-    getPlan(pddlProblemContext, goal)
+    getPlan(pddlDomain, pddlProblem)
       .then((newPddlPlan) => {
         const plan: Action[] = [];
         let isFirstTile = true;
