@@ -1,6 +1,7 @@
-import { Agents, Agent } from './agent.js';
+import { Agent, Agents } from './agent.js';
 import GameMap from './map.js';
 import { Parcel, Parcels } from './parcel.js';
+import Tile from './tile.js';
 
 export default class BeliefSet {
   private map: GameMap;
@@ -16,6 +17,10 @@ export default class BeliefSet {
 
   initMap(width: number, height: number, sensedTiles: any[]) {
     this.map = new GameMap(width, height, sensedTiles);
+
+    setTimeout(() => {
+      this.updateValueNotVisibleParcels(this.map, this.parcels);
+    }, 1000);
   }
 
   senseAgents(agents: Agent[], externalPerception: boolean) {
@@ -62,6 +67,35 @@ export default class BeliefSet {
   updateParcelDecayEstimation() {
     const newEstimation = this.parcels.getParcelsDecayEstimation(this.parcelsDecayEstimation, this.parcelDecayLR);
     if (newEstimation !== undefined) this.parcelsDecayEstimation = newEstimation;
+  }
+
+  // update not visible parcels value using a sort of dynamic set interval
+  updateValueNotVisibleParcels(map: GameMap, parcels: Parcels) {
+    const parcelsIdToDelete = new Set<string>();
+    for (const parcel of parcels.getParcels()) {
+      if (!parcel.isVisible) parcel.reward -= 1;
+
+      if (parcel.reward <= 0) parcelsIdToDelete.add(parcel.id);
+    }
+
+    for (const parcelId of parcelsIdToDelete) {
+      parcels.deleteParcel(parcelId);
+    }
+
+    // refresh the map
+    map.senseParcels(parcels.getParcels());
+
+    setTimeout(() => {
+      this.updateValueNotVisibleParcels(this.map, this.parcels);
+    }, this.parcels.getParcelsDecayEstimation(this.parcelsDecayEstimation, this.parcelDecayLR) * 1000 ?? 1000);
+  }
+
+  getMyId() {
+    return this.me.id;
+  }
+
+  getMyPosition() {
+    return new Tile(this.me.x, this.me.y);
   }
 
   printMap() {

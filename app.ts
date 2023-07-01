@@ -1,13 +1,13 @@
+import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import Config from './config.js';
+import Carrier from './src/agents/Carrier.js';
 import { Agent } from './src/belief-sets/agent.js';
 import { Parcel } from './src/belief-sets/parcel.js';
-import BeliefSet from './src/belief-sets/belief-set.js';
-import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
-import Carrier from './src/agents/carrier.js';
+import Tile from './src/belief-sets/tile.js';
+import Message from './src/messages/Message.js';
 
 const client = new DeliverooApi(`http://localhost:${Config.Port}`, Config.Token);
-
-const carrier = new Carrier(Config.ParcelDecayLearningRate);
+const carrier = new Carrier(client, Config.BrainType, Config.ParcelDecayLearningRate);
 
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   carrier.initMap(width, height, tiles);
@@ -24,6 +24,7 @@ client.socket.on('parcels sensing', (parcels: any) => {
     (parcel) => new Parcel(parcel.id, parcel.x, parcel.y, parcel.carriedBy, parcel.reward, true)
   );
   carrier.senseParcels(parsedParcels, false);
+  carrier.updateParcelDecayEstimation();
 });
 
 client.socket.on('you', (me: any) => {
@@ -31,4 +32,14 @@ client.socket.on('you', (me: any) => {
   carrier.senseYou(parsedMe);
 });
 
-client.socket.on('msg', async (id: string, name: string, messageRaw: any, reply) => {});
+client.socket.on('msg', async (id: string, name: string, messageRaw: any, reply) => {
+  carrier.senseMessage(
+    new Message(
+      messageRaw.type,
+      messageRaw.senderId,
+      new Tile(messageRaw.senderPosition.x, messageRaw.senderPosition.y),
+      messageRaw.timestamp,
+      messageRaw.payload
+    )
+  );
+});

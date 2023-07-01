@@ -94,6 +94,10 @@ export class Parcels {
     return undefined;
   }
 
+  deleteParcel(parcelId: string) {
+    this.parcels.delete(parcelId);
+  }
+
   print() {
     console.log(this.parcels);
   }

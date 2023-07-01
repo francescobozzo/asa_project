@@ -1,22 +1,23 @@
 import * as dotenv from 'dotenv';
 import log from 'loglevel';
-import AstarIntentionPlanner from './src/agents/astar-intention-planner.js';
-import PddlIntentionPlanner from './src/agents/pddl-intention-planner.js';
+
+export enum BRAIN_TYPE {
+  AStarSingelAgent,
+  PddlSingleAgent,
+  PddlMultiAgentDistributedVersion,
+  PddlMultiAgentLeaderVersionSendPlan,
+  PddlMultiAgentLeaderVersionSendAction,
+}
+
+const brainTypeMap = new Map<string, BRAIN_TYPE>([
+  ['AStarSingelAgent', BRAIN_TYPE.AStarSingelAgent],
+  ['PddlSingleAgent', BRAIN_TYPE.PddlSingleAgent],
+  ['PddlMultiAgentDistributedVersion', BRAIN_TYPE.PddlMultiAgentDistributedVersion],
+  ['PddlMultiAgentLeaderVersionSendPlan', BRAIN_TYPE.PddlMultiAgentLeaderVersionSendPlan],
+  ['PddlMultiAgentLeaderVersionSendAction', BRAIN_TYPE.PddlMultiAgentLeaderVersionSendAction],
+]);
 
 dotenv.config();
-
-let brain = null;
-switch (process.env.BRAIN) {
-  case 'PDDL':
-    brain = PddlIntentionPlanner;
-    break;
-  case 'ASTAR':
-    brain = AstarIntentionPlanner;
-    break;
-  default:
-    brain = PddlIntentionPlanner;
-    break;
-}
 
 switch (process.env.LOG_LEVEL || 'WARN') {
   case 'DEBUG':
@@ -53,7 +54,7 @@ export default {
   MainPlayerSpeedLearningRate: process.env.MAIN_PLAYER_SPEED_LEARNING_RATE
     ? parseFloat(process.env.MAIN_PLAYER_SPEED_LEARNING_RATE)
     : 0.5,
-  Brain: brain,
+  BrainType: brainTypeMap.get(process.env.BRAIN_TYPE) ?? BRAIN_TYPE.PddlSingleAgent,
   AgentClock: parseInt(process.env.AGENT_CLOCK) ?? 10,
   ActionErrorPatience: parseInt(process.env.ACTION_ERROR_PATIENCE) ?? 10,
   CumulatedCarriedPenaltyFactor: parseFloat(process.env.CUMULATED_CARRIED_PENALTY_FACTOR) ?? 0.15,
