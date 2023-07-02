@@ -22,8 +22,8 @@ class DeliverooMap {
 
   constructor(width: number, height: number, sensedTiles: any, parcelDecayLR: number) {
     this.createMap(width, height, sensedTiles);
-    this.printWalkable();
-    this.print();
+    // this.printWalkable();
+    // this.print();
     this.parcelDecayLR = parcelDecayLR;
   }
 

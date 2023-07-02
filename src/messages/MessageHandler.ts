@@ -51,6 +51,10 @@ export default class MessageHandler {
     this.client.shout(MessageFactory.createAskForLeaderMessage(senderId, senderPosition));
   }
 
+  sendAskForPlan(senderId: string, receiverId: string, senderPosition: Tile) {
+    this.client.say(receiverId, MessageFactory.createAskForPlanMessage(senderId, senderPosition));
+  }
+
   sendAgentInform(senderId: string, senderPosition: Tile, agents: Agent[]) {
     this.client.shout(MessageFactory.createInformAgentMessage(senderId, senderPosition, agents));
   }

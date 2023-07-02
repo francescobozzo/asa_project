@@ -1,15 +1,15 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
+import log from 'loglevel';
 import { Agent } from '../../belief-sets/agent.js';
 import { Parcel } from '../../belief-sets/parcel.js';
+import { getPlan, moveAction, pickupAction } from '../../belief-sets/pddl.js';
 import Tile from '../../belief-sets/tile.js';
 import { Action, ManhattanDistanceFromYX, computeActionFromYX, pddlToyx, yxToPddl } from '../../belief-sets/utils.js';
-import PddlProblem from '../../pddl-client/PddlProblem.js';
-import IBrain from './IBrain.js';
 import PddlAction from '../../pddl-client/PddlAction.js';
 import PddlDomain from '../../pddl-client/PddlDomain.js';
 import PddlPredicate from '../../pddl-client/PddlPredicate.js';
-import { getPlan, moveAction, pickupAction } from '../../belief-sets/pddl.js';
-import log from 'loglevel';
+import PddlProblem from '../../pddl-client/PddlProblem.js';
+import IBrain from './IBrain.js';
 
 export default class PddlMultiAgentLeaderVersionSendPlan implements IBrain {
   private plans = new Map<string, Action[]>();
@@ -184,7 +184,7 @@ export default class PddlMultiAgentLeaderVersionSendPlan implements IBrain {
       const isPlanFailed = this.consecutiveFailedActions >= this.actionErrorPatience;
       const noPlanOrEmptyPlan = !plan || (plan && plan.length == 0);
 
-      if (amITheLeader && !this.isComputing && (isPlanFailed || noPlanOrEmptyPlan)) {
+      if (leaderId && amITheLeader && !this.isComputing && (isPlanFailed || noPlanOrEmptyPlan)) {
         this.computeDesires(
           startX,
           startY,
@@ -196,8 +196,10 @@ export default class PddlMultiAgentLeaderVersionSendPlan implements IBrain {
           playerSpeedEstimation,
           parcelDecayEstimation
         );
-        this.computePlan(startX, startY, '', pddlProblem, randomValidTile, distanceCache);
+        this.computePlan(startX, startY, this.meId, pddlProblem, randomValidTile, distanceCache);
         this.consecutiveFailedActions = 0;
+      } else if (!this.isComputing && (isPlanFailed || noPlanOrEmptyPlan)) {
+        this.setPlan([]);
       }
 
       const move = plan && plan.length > 0 ? plan[0] : Action.UNDEFINED;

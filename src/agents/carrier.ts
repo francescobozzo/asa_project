@@ -1,16 +1,15 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
-import { BRAIN_TYPE } from '../../config.js';
+import log from 'loglevel';
+import Config, { BRAIN_TYPE } from '../../config.js';
 import { Agent } from '../belief-sets/agent.js';
 import BeliefSet from '../belief-sets/belief-set.js';
 import { Parcel } from '../belief-sets/parcel.js';
+import { arrayAverage } from '../belief-sets/utils.js';
 import Message, { MessageType } from '../messages/Message.js';
 import MessageHandler from '../messages/MessageHandler.js';
 import IBrain from './brains/IBrain.js';
-import { arrayAverage } from '../belief-sets/utils.js';
-import log from 'loglevel';
-import PddlSingleAgent from './brains/PddlSingleAgent.js';
-import Config from '../../config.js';
 import PddlMultiAgentLeaderVersionSendPlan from './brains/PddlMultiAgentLeaderVersionSendPlan.js';
+import PddlSingleAgent from './brains/PddlSingleAgent.js';
 
 export default class Carrier {
   private brain: IBrain;
@@ -24,6 +23,8 @@ export default class Carrier {
   private mainPlayerSpeedLR: number;
   private mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
   private parcelsToAvoidIds = new Set<string>();
+  private isElectingLeader = false;
+  private isAskingForPlan = false;
 
   constructor(
     client: DeliverooApi,
@@ -36,6 +37,7 @@ export default class Carrier {
     this.messageHandler = new MessageHandler(client);
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
     this.client = client;
+    this.brainType = brainType;
 
     setInterval(async () => {
       const me = this.beliefSet.getMyPosition();
@@ -47,7 +49,6 @@ export default class Carrier {
         }
       }
     }, agentClock);
-    if (brainType === BRAIN_TYPE.PddlMultiAgentLeaderVersionSendPlan) this.leaderElection();
   }
 
   initMap(width: number, height: number, tiles: any[]) {
@@ -69,8 +70,15 @@ export default class Carrier {
   senseYou(me: Agent) {
     this.beliefSet.senseYou(me);
     this.updateMainPlayerSpeedEstimation();
-
-    if (!this.brain) this.initBrain(this.brainType);
+    if (!this.brain) {
+      this.initBrain(this.brainType);
+      if (this.brainType === BRAIN_TYPE.PddlMultiAgentLeaderVersionSendPlan) {
+        if (!this.isElectingLeader) {
+          this.isElectingLeader = true;
+          this.leaderElection();
+        }
+      }
+    }
   }
 
   senseMessage(message: Message) {
@@ -107,6 +115,7 @@ export default class Carrier {
       case MessageType.PLAN:
         const returnedPlan = this.messageHandler.handlePlan(message);
         if (this.brain) this.brain.setPlan(returnedPlan);
+        this.isAskingForPlan = false;
         break;
     }
   }
@@ -132,22 +141,26 @@ export default class Carrier {
     this.beliefSet.deleteParcels(parcels);
   }
 
-  // getLeader() {
-  //   return this.leaderId;
-  // }
-
-  // setLeader(agentId: string) {
-  //   this.leaderId = agentId;
-  // }
-
   printMap() {
     this.beliefSet.printMap();
   }
 
   private async takeAction(startX: number, startY: number) {
     if (!this.brain) return [];
+
+    if (
+      this.leaderId &&
+      !this.isMeLeader() &&
+      !this.isAskingForPlan &&
+      this.brain.getPlan(this.beliefSet.getMyId()).length === 0
+    ) {
+      this.isAskingForPlan = true;
+      this.messageHandler.sendAskForPlan(this.beliefSet.getMyId(), this.leaderId, this.beliefSet.getMyPosition());
+    }
+
     return await this.brain.takeAction(
       this.client,
+      this.leaderId,
       startX,
       startY,
       this.beliefSet.getParcels(),
@@ -204,6 +217,7 @@ export default class Carrier {
           Config.TakeActions,
           Config.ActionErrorPatience
         );
+        break;
     }
   }
 
@@ -227,12 +241,11 @@ export default class Carrier {
   }
 
   private leaderElection() {
-    this.client.shout(this.messageHandler.sendAskLeader(this.beliefSet.getMyId(), this.beliefSet.getMyPosition()));
+    this.messageHandler.sendAskLeader(this.beliefSet.getMyId(), this.beliefSet.getMyPosition());
     setTimeout(() => {
       if (!this.leaderId) {
         this.leaderId = this.beliefSet.getMyId();
-
-        this.client.shout(this.messageHandler.sendLeader(this.beliefSet.getMyId(), this.beliefSet.getMyPosition()));
+        this.messageHandler.sendLeader(this.beliefSet.getMyId(), this.beliefSet.getMyPosition());
       }
     }, 2500);
   }
