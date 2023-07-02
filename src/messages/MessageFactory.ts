@@ -19,6 +19,12 @@ class MessageFactory {
     return message;
   }
 
+  static createInformDeliveredParcelsMessage(id: string, position: Tile, deliveredParcels: Parcel[]) {
+    const message = MessageFactory.createInformMessage(id, position);
+    message.payload = { deliveredParcels };
+    return message;
+  }
+
   static createInformAgentMessage(id: string, position: Tile, agents: Agent[]) {
     const message = MessageFactory.createInformMessage(id, position);
     message.payload = { agents };

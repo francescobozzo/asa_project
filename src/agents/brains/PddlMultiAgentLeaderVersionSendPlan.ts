@@ -1,20 +1,19 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
-import log from 'loglevel';
 import { Agent } from '../../belief-sets/agent.js';
 import { Parcel } from '../../belief-sets/parcel.js';
-import { getPlan, moveAction, pickupAction } from '../../belief-sets/pddl.js';
 import Tile from '../../belief-sets/tile.js';
-import { computeActionFromYX } from '../../belief-sets/utils.js';
-import { pddlToyx } from '../../belief-sets/utils.js';
-import { Action, ManhattanDistanceFromYX, yxToPddl } from '../../belief-sets/utils.js';
+import { Action, ManhattanDistanceFromYX, computeActionFromYX, pddlToyx, yxToPddl } from '../../belief-sets/utils.js';
+import PddlProblem from '../../pddl-client/PddlProblem.js';
+import IBrain from './IBrain.js';
 import PddlAction from '../../pddl-client/PddlAction.js';
 import PddlDomain from '../../pddl-client/PddlDomain.js';
 import PddlPredicate from '../../pddl-client/PddlPredicate.js';
-import PddlProblem from '../../pddl-client/PddlProblem.js';
-import IBrain from './IBrain.js';
+import { getPlan, moveAction, pickupAction } from '../../belief-sets/pddl.js';
+import log from 'loglevel';
 
-export default class PddlSingleAgent implements IBrain {
-  private plan: Action[] = [];
+export default class PddlMultiAgentLeaderVersionSendPlan implements IBrain {
+  private plans = new Map<string, Action[]>();
+  private meId: string;
   private isProbabilistic: boolean;
   private cumulativeCarriedPenaltyfactor: number;
   private isComputing: boolean = false;
@@ -25,11 +24,13 @@ export default class PddlSingleAgent implements IBrain {
   private actionErrorPatience: number;
 
   constructor(
+    meId: string,
     isProbabilistic: boolean,
     cumulativeCarriedPenaltyfactor: number,
     isTakeAction: boolean,
     actionErrorPatience: number
   ) {
+    this.meId = meId;
     this.isProbabilistic = isProbabilistic;
     this.cumulativeCarriedPenaltyfactor = cumulativeCarriedPenaltyfactor;
     this.isTakeAction = isTakeAction;
@@ -46,7 +47,7 @@ export default class PddlSingleAgent implements IBrain {
     distanceCache: Map<string, number>,
     playerSpeedEstimation: number,
     parcelDecayEstimation: number
-  ): boolean {
+  ) {
     if (this.isComputing) return false;
 
     this.parcelsToPick = [];
@@ -147,7 +148,7 @@ export default class PddlSingleAgent implements IBrain {
             plan.push(Action.PUTDOWN);
           }
         }
-        this.plan = plan;
+        this.plans.set(agentId, plan);
       })
       .catch((error) => {
         log.debug("DEBUG: Couldn't generate a new pddl plan\n", error);
@@ -177,11 +178,13 @@ export default class PddlSingleAgent implements IBrain {
   ) {
     let isPutdownDone = false;
     if (this.isTakeAction && !this.isActionInProgress) {
+      const plan = this.plans.get(this.meId);
       this.isActionInProgress = true;
+      const amITheLeader = leaderId === this.meId;
       const isPlanFailed = this.consecutiveFailedActions >= this.actionErrorPatience;
-      const noPlanOrEmptyPlan = !this.plan || (this.plan && this.plan.length == 0);
+      const noPlanOrEmptyPlan = !plan || (plan && plan.length == 0);
 
-      if (!this.isComputing && (isPlanFailed || noPlanOrEmptyPlan)) {
+      if (amITheLeader && !this.isComputing && (isPlanFailed || noPlanOrEmptyPlan)) {
         this.computeDesires(
           startX,
           startY,
@@ -197,7 +200,7 @@ export default class PddlSingleAgent implements IBrain {
         this.consecutiveFailedActions = 0;
       }
 
-      const move = this.plan && this.plan.length > 0 ? this.plan[0] : Action.UNDEFINED;
+      const move = plan && plan.length > 0 ? plan[0] : Action.UNDEFINED;
 
       let result = null;
       switch (move) {
@@ -207,7 +210,7 @@ export default class PddlSingleAgent implements IBrain {
           log.info(`INFO : ${move} action taken`);
           result = await client.pickup();
           if (result.length >= 0) {
-            this.plan.shift();
+            plan.shift();
             this.consecutiveFailedActions = 0;
           } else this.consecutiveFailedActions += 1;
           break;
@@ -215,7 +218,7 @@ export default class PddlSingleAgent implements IBrain {
           log.info(`INFO : ${move} action taken`);
           result = await client.putdown();
           if (result.length >= 0) {
-            this.plan.shift();
+            plan.shift();
             this.consecutiveFailedActions = 0;
             isPutdownDone = true;
           } else this.consecutiveFailedActions += 1;
@@ -224,7 +227,7 @@ export default class PddlSingleAgent implements IBrain {
           log.info(`INFO : ${move} action taken`);
           result = await client.move(move.toString());
           if (result !== false) {
-            this.plan.shift();
+            plan.shift();
             this.consecutiveFailedActions = 0;
           } else this.consecutiveFailedActions += 1;
           break;
@@ -236,12 +239,12 @@ export default class PddlSingleAgent implements IBrain {
   }
 
   setPlan(plan: Action[]) {
-    this.plan = plan;
-    return this.plan;
+    this.plans.set(this.meId, plan);
+    return plan;
   }
 
   getPlan(agentId: string) {
-    return [];
+    return this.plans.has(agentId) ? this.plans.get(agentId) : [];
   }
 
   private buildPDDLPutdownAction(parcels: Parcel[]) {

@@ -121,6 +121,7 @@ export default class BeliefSet {
 
   deleteParcels(parcels: Parcel[]) {
     this.parcels.deleteParcels(parcels.map((parcel) => parcel.id));
+    this.map.senseParcels(this.parcels.getParcels());
   }
 
   mapToPddlProblem() {

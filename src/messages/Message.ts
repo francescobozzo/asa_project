@@ -40,6 +40,15 @@ export default class Message {
       : [];
   }
 
+  getInfoDeliveredParcels(): Parcel[] {
+    return this.payload.deliveredParcels
+      ? this.payload.deliveredParcels.map(
+          (parcelRaw) =>
+            new Parcel(parcelRaw.id, parcelRaw.x, parcelRaw.y, parcelRaw.carriedBy, parcelRaw.reward, false)
+        )
+      : [];
+  }
+
   getParcelIdsIntention(): string[] {
     return this.payload.parcelIds ?? [];
   }

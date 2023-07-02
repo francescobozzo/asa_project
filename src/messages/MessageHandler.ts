@@ -12,7 +12,8 @@ export default class MessageHandler {
   handleInform(message: Message) {
     const parcels = message.getInfoParcels();
     const agents = message.getInfoAgents();
-    return { parcels, agents };
+    const deliveredParcels = message.getInfoDeliveredParcels();
+    return { parcels, deliveredParcels, agents };
   }
 
   handleIntention(message: Message) {
@@ -28,7 +29,10 @@ export default class MessageHandler {
   }
 
   handleAskForPlan(message: Message) {
-    return message.senderId;
+    const senderId = message.senderId;
+    const senderX = message.senderPosition.x;
+    const senderY = message.senderPosition.y;
+    return { senderId, senderX, senderY };
   }
 
   handlePlan(message: Message) {
@@ -43,11 +47,19 @@ export default class MessageHandler {
     this.client.shout(MessageFactory.createLeaderMessage(senderId, senderPosition));
   }
 
+  sendAskLeader(senderId: string, senderPosition: Tile) {
+    this.client.shout(MessageFactory.createAskForLeaderMessage(senderId, senderPosition));
+  }
+
   sendAgentInform(senderId: string, senderPosition: Tile, agents: Agent[]) {
     this.client.shout(MessageFactory.createInformAgentMessage(senderId, senderPosition, agents));
   }
 
   sendParcelInform(senderId: string, senderPosition: Tile, parcels: Parcel[]) {
     this.client.shout(MessageFactory.createInformParcelMessage(senderId, senderPosition, parcels));
+  }
+
+  sendDeliveredParcelsInform(senderId: string, senderPosition: Tile, parcels: Parcel[]) {
+    this.client.shout(MessageFactory.createInformDeliveredParcelsMessage(senderId, senderPosition, parcels));
   }
 }
