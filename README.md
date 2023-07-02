@@ -14,7 +14,19 @@ npm install
 
 ## How to run
 
+- single agent
+- distributed agent
+- leader agent with plan sharing v1
+
 ```bash
+git checkout single-multi-v1
+npm start
+```
+
+- leader agent with plan sharing v2
+
+```bash
+git checkout main
 npm start
 ```
 
