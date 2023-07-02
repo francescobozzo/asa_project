@@ -19,7 +19,6 @@ const carrier = new Carrier(
 
 client.socket.on('map', (width: number, height: number, tiles: any) => {
   carrier.initMap(width, height, tiles);
-  carrier.printMap();
 });
 
 client.socket.on('agents sensing', (agents: any[]) => {

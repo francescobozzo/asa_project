@@ -82,12 +82,10 @@ function getNeighboursFromTile(tile: Tile, map: Tile[][]) {
   const x = tile.x;
   const y = tile.y;
 
-  if (x > 0 && this.map[x - 1][y].isWalkable && !this.map[x - 1][y].isOccupied) neighbors.push(this.map[x - 1][y]);
-  if (x < this.map.length - 1 && this.map[x + 1][y].isWalkable && !this.map[x + 1][y].isOccupied)
-    neighbors.push(this.map[x + 1][y]);
-  if (y > 0 && this.map[x][y - 1].isWalkable && !this.map[x][y - 1].isOccupied) neighbors.push(this.map[x][y - 1]);
-  if (y < this.map[x].length - 1 && this.map[x][y + 1].isWalkable && !this.map[x][y + 1].isOccupied)
-    neighbors.push(this.map[x][y + 1]);
+  if (x > 0 && map[x - 1][y].isWalkable && !map[x - 1][y].isOccupied) neighbors.push(map[x - 1][y]);
+  if (x < map.length - 1 && map[x + 1][y].isWalkable && !map[x + 1][y].isOccupied) neighbors.push(map[x + 1][y]);
+  if (y > 0 && map[x][y - 1].isWalkable && !map[x][y - 1].isOccupied) neighbors.push(map[x][y - 1]);
+  if (y < map[x].length - 1 && map[x][y + 1].isWalkable && !map[x][y + 1].isOccupied) neighbors.push(map[x][y + 1]);
 
   return neighbors;
 }

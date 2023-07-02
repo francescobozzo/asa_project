@@ -98,6 +98,12 @@ export class Parcels {
     this.parcels.delete(parcelId);
   }
 
+  deleteParcels(parcelIds: string[]) {
+    for (const parcelId of parcelIds) {
+      this.deleteParcel(parcelId);
+    }
+  }
+
   print() {
     console.log(this.parcels);
   }

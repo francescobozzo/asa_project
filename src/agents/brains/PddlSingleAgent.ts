@@ -1,13 +1,12 @@
 import { DeliverooApi } from '@unitn-asa/deliveroo-js-client';
 import log from 'loglevel';
 import { Agent } from '../../belief-sets/agent.js';
-import DeliverooMap from '../../belief-sets/matrix-map-copy.js';
 import { Parcel } from '../../belief-sets/parcel.js';
 import { getPlan, moveAction, pickupAction } from '../../belief-sets/pddl.js';
 import Tile from '../../belief-sets/tile.js';
 import { computeActionFromYX } from '../../belief-sets/utils.js';
 import { pddlToyx } from '../../belief-sets/utils.js';
-import { Action, ManhattanDistance, ManhattanDistanceFromYX, yxToPddl } from '../../belief-sets/utils.js';
+import { Action, ManhattanDistanceFromYX, yxToPddl } from '../../belief-sets/utils.js';
 import PddlAction from '../../pddl-client/PddlAction.js';
 import PddlDomain from '../../pddl-client/PddlDomain.js';
 import PddlPredicate from '../../pddl-client/PddlPredicate.js';
@@ -15,7 +14,7 @@ import PddlProblem from '../../pddl-client/PddlProblem.js';
 import IBrain from './IBrain.js';
 
 export default class PddlSingleAgent implements IBrain {
-  private plan: Action[];
+  private plan: Action[] = [];
   private isProbabilistic: boolean;
   private cumulativeCarriedPenaltyfactor: number;
   private isComputing: boolean = false;
@@ -37,7 +36,7 @@ export default class PddlSingleAgent implements IBrain {
     this.actionErrorPatience = actionErrorPatience;
   }
 
-  isTimeForANewPlan(
+  computeDesires(
     startX: number,
     startY: number,
     parcels: Parcel[],
@@ -48,9 +47,7 @@ export default class PddlSingleAgent implements IBrain {
     playerSpeedEstimation: number,
     parcelDecayEstimation: number
   ): boolean {
-    if (this.isComputing) {
-      return false;
-    }
+    if (this.isComputing) return false;
 
     this.parcelsToPick = [];
     class ParcelPotentialScore {
@@ -86,9 +83,6 @@ export default class PddlSingleAgent implements IBrain {
         this.parcelsToPick.push(pp.parcel);
       }
     }
-
-    const isExploring = this.plan.length === 0 ? false : this.plan[this.plan.length - 1] !== Action.PUTDOWN;
-    return (isExploring && this.parcelsToPick.length > 0) || this.plan.length === 0;
   }
 
   computePlan(
@@ -98,9 +92,7 @@ export default class PddlSingleAgent implements IBrain {
     randomValidTile: Tile,
     distanceCache: Map<string, number>
   ) {
-    if (this.isComputing) {
-      return [];
-    }
+    if (this.isComputing) return [];
     this.isComputing = true;
 
     const pddlDomain = new PddlDomain(
@@ -126,6 +118,8 @@ export default class PddlSingleAgent implements IBrain {
     for (const parcel of this.parcelsToPick) {
       pddlProblem.addInitCondition(`parcel ${yxToPddl(parcel.y, parcel.x)}`);
     }
+
+    pddlProblem.setGoal(goal);
 
     // const oldConsoleLogFunction = console.log;
     // console.log = (...args) => {};
@@ -173,16 +167,20 @@ export default class PddlSingleAgent implements IBrain {
     parcelsToAvoidIds: Set<string>,
     agents: Agent[],
     deliveryStations: Tile[],
+    randomValidTile: Tile,
     distanceCache: Map<string, number>,
     playerSpeedEstimation: number,
     parcelDecayEstimation: number,
     pddlProblem: PddlProblem
   ) {
+    let isPutdownDone = false;
     if (this.isTakeAction && !this.isActionInProgress) {
       this.isActionInProgress = true;
+      const isPlanFailed = this.consecutiveFailedActions >= this.actionErrorPatience;
+      const noPlanOrEmptyPlan = !this.plan || (this.plan && this.plan.length == 0);
 
-      if (this.consecutiveFailedActions >= this.actionErrorPatience || (this.plan && this.plan.length == 0)) {
-        this.isTimeForANewPlan(
+      if (!this.isComputing && (isPlanFailed || noPlanOrEmptyPlan)) {
+        this.computeDesires(
           startX,
           startY,
           parcels,
@@ -193,7 +191,8 @@ export default class PddlSingleAgent implements IBrain {
           playerSpeedEstimation,
           parcelDecayEstimation
         );
-        this.computePlan(startX, startY, pddlProblem, deliveryStations[0], distanceCache);
+        this.computePlan(startX, startY, pddlProblem, randomValidTile, distanceCache);
+        this.consecutiveFailedActions = 0;
       }
 
       const move = this.plan && this.plan.length > 0 ? this.plan[0] : Action.UNDEFINED;
@@ -205,25 +204,33 @@ export default class PddlSingleAgent implements IBrain {
         case Action.PICKUP:
           log.info(`INFO : ${move} action taken`);
           result = await client.pickup();
-          if (result.length >= 0) this.plan.shift();
-          else this.consecutiveFailedActions += 1;
+          if (result.length >= 0) {
+            this.plan.shift();
+            this.consecutiveFailedActions = 0;
+          } else this.consecutiveFailedActions += 1;
           break;
         case Action.PUTDOWN:
           log.info(`INFO : ${move} action taken`);
           result = await client.putdown();
-          if (result.length >= 0) this.plan.shift();
-          else this.consecutiveFailedActions += 1;
+          if (result.length >= 0) {
+            this.plan.shift();
+            this.consecutiveFailedActions = 0;
+            isPutdownDone = true;
+          } else this.consecutiveFailedActions += 1;
           break;
         default:
           log.info(`INFO : ${move} action taken`);
           result = await client.move(move.toString());
-          if (result.length >= 0) this.plan.shift();
-          else this.consecutiveFailedActions += 1;
-
+          if (result !== false) {
+            this.plan.shift();
+            this.consecutiveFailedActions = 0;
+          } else this.consecutiveFailedActions += 1;
           break;
       }
       this.isActionInProgress = false;
     }
+
+    return isPutdownDone ? this.parcelsToPick : [];
   }
 
   setPlan(plan: Action[]) {

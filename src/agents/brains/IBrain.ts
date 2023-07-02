@@ -6,7 +6,7 @@ import PddlProblem from '../../pddl-client/PddlProblem.js';
 import { Action } from '../../belief-sets/utils.js';
 
 interface IBrain {
-  isTimeForANewPlan: (
+  computeDesires: (
     startX: number,
     startY: number,
     parcels: Parcel[],
@@ -32,11 +32,12 @@ interface IBrain {
     parcelsToAvoidIds: Set<string>,
     agents: Agent[],
     deliveryStations: Tile[],
+    randomValidTile: Tile,
     distanceCache: Map<string, number>,
     playerSpeedEstimation: number,
     parcelDecayEstimation: number,
     pddlProblem: PddlProblem
-  ) => void;
+  ) => Promise<Parcel[]>;
   setPlan: (plan: Action[]) => Action[];
   //   extendPlan: (plan: Action[]) => Action[];
 }

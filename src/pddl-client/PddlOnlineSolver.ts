@@ -25,7 +25,8 @@ export default async function pddlOnlineSolver(pddlDomain: PddlDomain, pddlProbl
   }
 
   const content = await response.json();
-  console.log(content.result.plan);
+  // console.log(content.result.plan);
+  // console.log(content);
 
   if (content['status'] == 'error') {
     if (!content['result'].plan && content['result'].output.split('\n')[0] != ' --- OK.') {

@@ -27,7 +27,7 @@ export default class BeliefSet {
     this.agents.senseAgents(agents, externalPerception);
     if (this.map && this.me && !externalPerception) {
       this.map.senseAgents(agents, this.me);
-      this.map.print();
+      // this.map.print();
     }
   }
 
@@ -35,7 +35,7 @@ export default class BeliefSet {
     this.parcels.senseParcels(parcels, externalPerception);
     if (this.map) {
       this.map.senseParcels(this.parcels.getParcels());
-      this.map.print();
+      // this.map.print();
     }
   }
 
@@ -48,7 +48,7 @@ export default class BeliefSet {
       const oldY = me.y;
       this.map.senseYou(oldX, oldY, me);
       this.me.update(me.x, me.y, me.score, true);
-      this.map.print();
+      // this.map.print();
     }
   }
 
@@ -113,6 +113,14 @@ export default class BeliefSet {
 
   getParcelDecayEstimation() {
     return this.parcelsDecayEstimation;
+  }
+
+  getRandomValidTile(): Tile {
+    return this.map.getRandomValidTile();
+  }
+
+  deleteParcels(parcels: Parcel[]) {
+    this.parcels.deleteParcels(parcels.map((parcel) => parcel.id));
   }
 
   mapToPddlProblem() {

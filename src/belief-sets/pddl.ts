@@ -22,8 +22,8 @@ export const pickupAction = new PddlAction(
 );
 
 export async function getPlan(domain: PddlDomain, problem: PddlProblem) {
-  console.log(domain.toPddlString());
-  console.log(problem.toPddlString());
+  // console.log(domain.toPddlString());
+  // console.log(problem.toPddlString());
 
   // const consoleLogFunction = console.log;
   // console.log = function (...args) {};

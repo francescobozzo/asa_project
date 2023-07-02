@@ -94,4 +94,4 @@ const problem = new PddlProblem(
 // console.log(problem.toPddlString());
 
 const plan = await pddlOnlineSolver(domain, problem);
-console.log(plan);
+// console.log(plan);

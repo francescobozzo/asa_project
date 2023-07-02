@@ -1,13 +1,13 @@
 import Tile from './tile.js';
 import log from 'loglevel';
-import { getNeighboursFromTile, roundCoordinates, setIntersection } from './utils.js';
+import { getNeighboursFromTile, getRandomElementFromArray, roundCoordinates, setIntersection } from './utils.js';
 import { Parcel, Parcels } from './parcel.js';
 import { Agent } from './agent.js';
-import { get } from 'http';
 import PddlProblem from '../pddl-client/PddlProblem.js';
 
 export default class GameMap {
   private map: Tile[][] = [];
+  private validTiles: Tile[] = [];
   private deliveryStations: Tile[] = [];
   private width: number;
   private height: number;
@@ -33,6 +33,7 @@ export default class GameMap {
         tile.isDelivery = true;
         this.deliveryStations.push(tile);
       } else {
+        this.validTiles.push(tile);
         tile.isWalkable = true;
       }
     }
@@ -99,11 +100,15 @@ export default class GameMap {
       }
     }
 
-    return new PddlProblem('deliveroo', inits, tileObjects, '');
+    return new PddlProblem('deliveroo', tileObjects, inits, '');
   }
 
   getDeliveryStations() {
     return this.deliveryStations;
+  }
+
+  getRandomValidTile(): Tile {
+    return getRandomElementFromArray(this.validTiles);
   }
 
   print() {

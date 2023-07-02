@@ -9,13 +9,14 @@ import IBrain from './brains/IBrain.js';
 import { arrayAverage } from '../belief-sets/utils.js';
 import log from 'loglevel';
 import PddlSingleAgent from './brains/PddlSingleAgent.js';
+import Config from '../../config.js';
 
 export default class Carrier {
   private brain: IBrain;
   private beliefSet: BeliefSet;
   private messageHandler: MessageHandler;
   private leaderId: string;
-  private distanceCache: Map<string, number>;
+  private distanceCache = new Map<string, number>();
   private modifiedAt: Date[] = [];
   private mainPlayerSpeedLR: number;
   private mainPlayerSpeedEstimation: number = 0.1; // it corresponds to 0.1s
@@ -35,8 +36,8 @@ export default class Carrier {
 
     setInterval(async () => {
       const me = this.beliefSet.getMyPosition();
-      if (me)
-        this.brain.takeAction(
+      if (me) {
+        const deliveredParcels = await this.brain.takeAction(
           client,
           me.x,
           me.y,
@@ -44,11 +45,14 @@ export default class Carrier {
           this.parcelsToAvoidIds,
           this.beliefSet.getAgents(),
           this.beliefSet.getDeliveryStations(),
+          this.beliefSet.getRandomValidTile(),
           this.distanceCache,
           this.mainPlayerSpeedEstimation,
           this.beliefSet.getParcelDecayEstimation(),
           this.beliefSet.mapToPddlProblem()
         );
+        this.beliefSet.deleteParcels(deliveredParcels);
+      }
     }, agentClock);
   }
 
@@ -136,7 +140,12 @@ export default class Carrier {
   private initBrain(brainType: BRAIN_TYPE) {
     switch (brainType) {
       case BRAIN_TYPE.PddlSingleAgent:
-        this.brain = new PddlSingleAgent(true, 0.15, true, 10);
+        this.brain = new PddlSingleAgent(
+          Config.UseProbabilisticModel,
+          Config.CumulatedCarriedPenaltyFactor,
+          Config.TakeActions,
+          Config.ActionErrorPatience
+        );
         break;
     }
   }
