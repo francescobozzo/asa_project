@@ -12,6 +12,7 @@ export enum MessageType {
   ASKFORLEADER = 'askforleader',
   ASKFORPLAN = 'askforplan',
   PLAN = 'plan',
+  ACKACTION = 'ackaction',
 }
 
 export default class Message {

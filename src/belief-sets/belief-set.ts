@@ -1,7 +1,10 @@
+import { get } from 'http';
+import PddlProblem from '../pddl-client/PddlProblem.js';
 import { Agent, Agents } from './agent.js';
 import GameMap from './map.js';
 import { Parcel, Parcels } from './parcel.js';
 import Tile from './tile.js';
+import { getNeighboursFromTile, roundCoordinates } from './utils.js';
 
 export default class BeliefSet {
   private map: GameMap;
@@ -90,6 +93,27 @@ export default class BeliefSet {
     }, this.parcels.getParcelsDecayEstimation(this.parcelsDecayEstimation, this.parcelDecayLR) * 1000 ?? 1000);
   }
 
+  toPddlProblem(friendlyAgents: Set<string>) {
+    const { tileObjects, moveInits } = this.map.toPddlProblem();
+    const { agentObjects, agentInits } = this.agents.toPddlProblem(friendlyAgents);
+    const { parcelObjects, parcelInits } = this.parcels.toPddlProblem();
+    let objects = tileObjects.concat(agentObjects);
+    objects = objects.concat(parcelObjects);
+    objects.push(`a_${this.me.id} - agent`);
+
+    let inits = moveInits.concat(agentInits);
+    inits = inits.concat(parcelInits);
+    inits = inits.concat([`blocked y${this.me.y}_x${this.me.x}`]);
+    inits.push(`at a_${this.me.id} y${this.me.y}_x${this.me.x}`);
+    inits.push(`blocked y${this.me.y}_x${this.me.x}`);
+
+    return new PddlProblem('deliveroo', objects, inits, '');
+  }
+
+  amIInitialized() {
+    return this.me !== undefined && this.me !== null;
+  }
+
   getMyId() {
     return this.me.id;
   }
@@ -101,6 +125,23 @@ export default class BeliefSet {
 
   getParcels() {
     return this.parcels.getParcels();
+  }
+
+  getReachableParcels() {
+    let reachableParcels = [];
+    for (const agent of this.getAgents()) {
+      if (Number.isInteger(agent.x) && Number.isInteger(agent.y)) {
+        reachableParcels = reachableParcels.concat(this.map.bfs(agent, this.getParcels()));
+      } else {
+        return [];
+      }
+    }
+
+    if (Number.isInteger(this.me.x) && Number.isInteger(this.me.y))
+      return reachableParcels.concat(this.map.bfs(this.me, this.getParcels()));
+    else {
+      return [];
+    }
   }
 
   getAgents() {
@@ -124,9 +165,13 @@ export default class BeliefSet {
     this.map.senseParcels(this.parcels.getParcels());
   }
 
-  mapToPddlProblem() {
-    return this.map.toPddlProblem(this.me);
+  deleteCarriedParcels() {
+    const carriedParcels = this.parcels.getParcels().filter((parcel) => parcel.carriedBy === this.me.id);
+    this.deleteParcels(carriedParcels);
   }
+  // mapToPddlProblem() {
+  //   return this.map.toPddlProblem(this.me);
+  // }
 
   printMap() {
     this.map.print();

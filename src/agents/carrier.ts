@@ -4,16 +4,17 @@ import Config, { BRAIN_TYPE } from '../../config.js';
 import { Agent } from '../belief-sets/agent.js';
 import BeliefSet from '../belief-sets/belief-set.js';
 import { Parcel } from '../belief-sets/parcel.js';
-import { arrayAverage } from '../belief-sets/utils.js';
+import { Action, arrayAverage } from '../belief-sets/utils.js';
 import Message, { MessageType } from '../messages/Message.js';
 import MessageHandler from '../messages/MessageHandler.js';
 import IBrain from './brains/IBrain.js';
 import PddlMultiAgentLeaderVersionSendPlan from './brains/PddlMultiAgentLeaderVersionSendPlan.js';
 import PddlSingleAgent from './brains/PddlSingleAgent.js';
+import PDDLMulitAgentLeaderVersionSendAction from './brains/PDDLMultiAgentLeaderVersionSendAction.js';
 
 export default class Carrier {
-  private brain: IBrain;
-  private brainType: BRAIN_TYPE;
+  private brain: PDDLMulitAgentLeaderVersionSendAction = new PDDLMulitAgentLeaderVersionSendAction();
+  private brainType: PDDLMulitAgentLeaderVersionSendAction;
   private client: DeliverooApi;
   private beliefSet: BeliefSet;
   private messageHandler: MessageHandler;
@@ -25,6 +26,9 @@ export default class Carrier {
   private parcelsToAvoidIds = new Set<string>();
   private isElectingLeader = false;
   private isAskingForPlan = false;
+  private isActionRunning = false;
+  private isActionOtherAgentRunning = false;
+  private friendlyAgents = new Set<string>();
 
   constructor(
     client: DeliverooApi,
@@ -37,16 +41,71 @@ export default class Carrier {
     this.messageHandler = new MessageHandler(client);
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
     this.client = client;
-    this.brainType = brainType;
 
     setInterval(async () => {
-      const me = this.beliefSet.getMyPosition();
-      if (me) {
-        const deliveredParcels = await this.takeAction(me.x, me.y);
-        if (deliveredParcels.length > 0) {
-          this.deleteParcels(deliveredParcels);
-          this.messageHandler.sendDeliveredParcelsInform(this.beliefSet.getMyId(), me, deliveredParcels);
+      if (this.leaderId && this.beliefSet.amIInitialized() && this.isMeLeader()) {
+        this.brain.computePlan(this.beliefSet.getReachableParcels(), this.beliefSet.toPddlProblem(this.friendlyAgents));
+      }
+
+      if (this.beliefSet.amIInitialized() && !this.isActionRunning) {
+        this.isActionRunning = true;
+        const action = this.brain.getAction(this.beliefSet.getMyId());
+        console.log(action);
+
+        if (
+          action &&
+          action.agentId &&
+          action.agentId !== this.beliefSet.getMyId() &&
+          this.isMeLeader() &&
+          !this.isActionOtherAgentRunning
+        ) {
+          this.isActionOtherAgentRunning = true;
+          console.log('invio', [action.action]);
+          this.messageHandler.sendPlan(this.beliefSet.getMyId(), action.agentId, this.beliefSet.getMyPosition(), [
+            action.action,
+          ]);
+        } else if (action) {
+          let result = null;
+          switch (action.action) {
+            case Action.UNDEFINED:
+              break;
+            case Action.PICKUP:
+              result = await client.pickup();
+              if (result.length >= 0) {
+                this.brain.accomplishAction(this.beliefSet.getMyId());
+                if (!this.isMeLeader()) {
+                  this.messageHandler.sendAckAction(action.agentId, this.leaderId, this.beliefSet.getMyPosition());
+                }
+              }
+              break;
+            case Action.PUTDOWN:
+              result = await client.putdown();
+              // console.log(result);
+              if (result.length >= 0) {
+                this.brain.accomplishAction(this.beliefSet.getMyId());
+                this.beliefSet.deleteCarriedParcels();
+                this.messageHandler.sendParcelInform(
+                  this.beliefSet.getMyId(),
+                  this.beliefSet.getMyPosition(),
+                  this.beliefSet.getParcels()
+                );
+                if (!this.isMeLeader()) {
+                  this.messageHandler.sendAckAction(action.agentId, this.leaderId, this.beliefSet.getMyPosition());
+                }
+              }
+              break;
+            default:
+              result = await client.move(action.action.toString());
+              if (result !== false) {
+                this.brain.accomplishAction(this.beliefSet.getMyId());
+                if (!this.isMeLeader()) {
+                  this.messageHandler.sendAckAction(action.agentId, this.leaderId, this.beliefSet.getMyPosition());
+                }
+              }
+              break;
+          }
         }
+        this.isActionRunning = false;
       }
     }, agentClock);
   }
@@ -70,18 +129,22 @@ export default class Carrier {
   senseYou(me: Agent) {
     this.beliefSet.senseYou(me);
     this.updateMainPlayerSpeedEstimation();
-    if (!this.brain) {
-      this.initBrain(this.brainType);
-      if (this.brainType === BRAIN_TYPE.PddlMultiAgentLeaderVersionSendPlan) {
-        if (!this.isElectingLeader) {
-          this.isElectingLeader = true;
-          this.leaderElection();
-        }
-      }
+    if (!this.isElectingLeader && !this.leaderId) {
+      this.isElectingLeader = true;
+      this.leaderElection();
     }
   }
 
   senseMessage(message: Message) {
+    const sender = new Agent(
+      message.senderId,
+      message.senderId,
+      message.senderPosition.x,
+      message.senderPosition.y,
+      0,
+      true
+    );
+    this.beliefSet.senseAgents([sender], true);
     switch (message.type) {
       case MessageType.INFORM:
         const { parcels, deliveredParcels, agents } = this.messageHandler.handleInform(message);
@@ -97,6 +160,7 @@ export default class Carrier {
         if (this.isMeLeader()) {
           this.messageHandler.sendLeader(this.beliefSet.getMyId(), this.beliefSet.getMyPosition());
         }
+        this.friendlyAgents.add(message.senderId);
         break;
 
       case MessageType.LEADER:
@@ -106,16 +170,23 @@ export default class Carrier {
 
       case MessageType.ASKFORPLAN:
         const { senderId, senderX, senderY } = this.messageHandler.handleAskForPlan(message);
-        const parcelsToPick = this.computePlan(senderX, senderY, senderId);
-        this.addParcelsToAvoid(parcelsToPick);
-        const planToSend = this.brain.getPlan(senderId);
-        this.messageHandler.sendPlan(this.beliefSet.getMyId(), senderId, this.beliefSet.getMyPosition(), planToSend);
+        // const parcelsToPick = this.computePlan(senderX, senderY, senderId);
+        // this.addParcelsToAvoid(parcelsToPick);
+        // const planToSend = this.brain.getPlan(senderId);
+        // this.messageHandler.sendPlan(this.beliefSet.getMyId(), senderId, this.beliefSet.getMyPosition(), planToSend);
         break;
 
       case MessageType.PLAN:
         const returnedPlan = this.messageHandler.handlePlan(message);
-        if (this.brain) this.brain.setPlan(returnedPlan);
+        console.log('receieved', returnedPlan);
+        if (this.brain) this.brain.setPlan(this.beliefSet.getMyId(), returnedPlan);
         this.isAskingForPlan = false;
+        break;
+
+      case MessageType.ACKACTION:
+        this.brain.accomplishAction(message.senderId);
+        this.isActionOtherAgentRunning = false;
+        console.log('ack');
         break;
     }
   }
@@ -143,82 +214,6 @@ export default class Carrier {
 
   printMap() {
     this.beliefSet.printMap();
-  }
-
-  private async takeAction(startX: number, startY: number) {
-    if (!this.brain) return [];
-
-    if (
-      this.leaderId &&
-      !this.isMeLeader() &&
-      !this.isAskingForPlan &&
-      this.brain.getPlan(this.beliefSet.getMyId()).length === 0
-    ) {
-      this.isAskingForPlan = true;
-      this.messageHandler.sendAskForPlan(this.beliefSet.getMyId(), this.leaderId, this.beliefSet.getMyPosition());
-    }
-
-    return await this.brain.takeAction(
-      this.client,
-      this.leaderId,
-      startX,
-      startY,
-      this.beliefSet.getParcels(),
-      this.parcelsToAvoidIds,
-      this.beliefSet.getAgents(),
-      this.beliefSet.getDeliveryStations(),
-      this.beliefSet.getRandomValidTile(),
-      this.distanceCache,
-      this.mainPlayerSpeedEstimation,
-      this.beliefSet.getParcelDecayEstimation(),
-      this.beliefSet.mapToPddlProblem()
-    );
-  }
-
-  private computePlan(startX: number, startY: number, agentId: string) {
-    if (!this.brain) return [];
-    this.brain.computeDesires(
-      startX,
-      startY,
-      this.beliefSet.getParcels(),
-      this.parcelsToAvoidIds,
-      this.beliefSet.getAgents(),
-      this.beliefSet.getDeliveryStations(),
-      this.distanceCache,
-      this.mainPlayerSpeedEstimation,
-      this.beliefSet.getParcelDecayEstimation()
-    );
-    return this.brain.computePlan(
-      startX,
-      startY,
-      agentId,
-      this.beliefSet.mapToPddlProblem(),
-      this.beliefSet.getRandomValidTile(),
-      this.distanceCache
-    );
-  }
-
-  private initBrain(brainType: BRAIN_TYPE) {
-    switch (brainType) {
-      case BRAIN_TYPE.PddlSingleAgent:
-        this.brain = new PddlSingleAgent(
-          Config.UseProbabilisticModel,
-          Config.CumulatedCarriedPenaltyFactor,
-          Config.TakeActions,
-          Config.ActionErrorPatience
-        );
-        break;
-
-      case BRAIN_TYPE.PddlMultiAgentLeaderVersionSendPlan:
-        this.brain = new PddlMultiAgentLeaderVersionSendPlan(
-          this.beliefSet.getMyId(),
-          Config.UseProbabilisticModel,
-          Config.CumulatedCarriedPenaltyFactor,
-          Config.TakeActions,
-          Config.ActionErrorPatience
-        );
-        break;
-    }
   }
 
   private updateMainPlayerSpeedEstimation() {

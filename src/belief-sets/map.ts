@@ -4,6 +4,7 @@ import { getNeighboursFromTile, getRandomElementFromArray, roundCoordinates, set
 import { Parcel, Parcels } from './parcel.js';
 import { Agent } from './agent.js';
 import PddlProblem from '../pddl-client/PddlProblem.js';
+import { get } from 'http';
 
 export default class GameMap {
   private map: Tile[][] = [];
@@ -68,39 +69,66 @@ export default class GameMap {
     this.occupyTile(me.x, me.y, true);
   }
 
-  toPddlProblem(leaderAgent: Agent) {
+  toPddlProblem() {
     const tileObjects: string[] = [];
-    const inits: string[] = [];
+    const moveInits: string[] = [];
 
+    // iterate over the map
     for (let i = 0; i < this.height; i++) {
       for (let j = 0; j < this.width; j++) {
         const current = this.map[i][j];
-        tileObjects.push(current.toPddl());
 
+        // if not walkable skip iteration
         if (!current.isWalkable) continue;
 
-        // if (current.hasParcel) {
-        //   predicates.push(`(parcel ${this.tileToPddl(current)})`);
-        // }
+        // add tile to the list of objects
+        tileObjects.push(`${current.toPddl()} - position`);
 
-        if (current.isDelivery) {
-          inits.push(`delivery ${current.toPddl()}`);
-        }
+        // if delivery zones ad to inits
+        if (current.isDelivery) moveInits.push(`delivery ${current.toPddl()}`);
 
         for (const neighbor of getNeighboursFromTile(current, this.map)) {
-          inits.push(`can-move ${current.toPddl()} ${neighbor.toPddl()}`);
+          moveInits.push(`can-move ${current.toPddl()} ${neighbor.toPddl()}`);
+          moveInits.push(`can-move ${neighbor.toPddl()} ${current.toPddl()}`);
 
-          if (
-            (!leaderAgent && current.isMainPlayer) ||
-            (leaderAgent && leaderAgent.x === current.x && leaderAgent.y === current.y)
-          ) {
-            inits.push(`can-move ${neighbor.toPddl()} ${current.toPddl()}`);
-          }
+          // TODO penso che questa si possa togliere tranquillamente
+          // if (
+          //   (!leaderAgent && current.isMainPlayer) ||
+          //   (leaderAgent && leaderAgent.x === current.x && leaderAgent.y === current.y)
+          // ) {
+          //   inits.push(`can-move ${neighbor.toPddl()} ${current.toPddl()}`);
+          // }
         }
       }
     }
 
-    return new PddlProblem('deliveroo', tileObjects, inits, '');
+    return { tileObjects, moveInits };
+  }
+
+  bfs(start: Agent, parcels: Parcel[]) {
+    const stack = [this.map[start.x][start.y]];
+    const visited = new Set();
+    const reachableParcels = new Set<Parcel>();
+    const tileToParcel = new Map<Tile, Parcel>();
+
+    for (const parcel of parcels) {
+      tileToParcel.set(this.map[parcel.x][parcel.y], parcel);
+    }
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+
+      if (!visited.has(current)) {
+        visited.add(current);
+        if (tileToParcel.has(current)) reachableParcels.add(tileToParcel.get(current));
+
+        for (const neighbour of getNeighboursFromTile(current, this.map)) {
+          stack.push(neighbour);
+        }
+      }
+    }
+
+    return Array.from(reachableParcels);
   }
 
   getDeliveryStations() {

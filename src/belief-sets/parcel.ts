@@ -67,6 +67,19 @@ export class Parcels {
       }
   }
 
+  toPddlProblem() {
+    const parcelObjects: string[] = [];
+    const parcelInits: string[] = [];
+
+    for (const parcel of this.parcels.values()) {
+      parcelObjects.push(`${parcel.id} - parcel`);
+      parcelInits.push(`at ${parcel.id} y${parcel.y}_x${parcel.x}`);
+      if (parcel.carriedBy) parcelInits.push(`carrying a_${parcel.carriedBy} ${parcel.id}`);
+    }
+
+    return { parcelObjects, parcelInits };
+  }
+
   getParcels() {
     return Array.from(this.parcels.values());
   }

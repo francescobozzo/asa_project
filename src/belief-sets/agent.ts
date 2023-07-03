@@ -47,6 +47,21 @@ export class Agents {
       }
   }
 
+  toPddlProblem(friendlyAgents: Set<string>) {
+    const agentObjects: string[] = [];
+    const agentInits: string[] = [];
+
+    for (const agent of this.agents.values()) {
+      if (friendlyAgents.has(agent.id)) {
+        agentObjects.push(`a_${agent.id} - agent`);
+        agentInits.push(`at a_${agent.id} y${agent.y}_x${agent.x}`);
+        agentInits.push(`blocked y${agent.y}_x${agent.x}`);
+      }
+    }
+
+    return { agentObjects, agentInits };
+  }
+
   getAgents() {
     return Array.from(this.agents.values());
   }

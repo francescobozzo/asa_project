@@ -52,6 +52,10 @@ class MessageFactory {
   static createPlanMessage(id: string, position: Tile, actions: Action[]) {
     return new Message(MessageType.PLAN, id, position, new Date().toISOString(), { actions });
   }
+
+  static createAckAction(id: string, position: Tile) {
+    return new Message(MessageType.ACKACTION, id, position, new Date().toISOString(), {});
+  }
 }
 
 export default MessageFactory;

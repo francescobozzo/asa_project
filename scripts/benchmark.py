@@ -23,16 +23,17 @@ def main(args):
     deliveroo_process = Process(
         target=run_deliveroo_env, args=(args.deliveroo_dir, args.challenge)
     )
-    agent_processs = []
-    tokens = args.tokens if not args.tokens else TOKENS
+    agent_processes = []
+    tokens = args.tokens if args.tokens else TOKENS
     for token in tokens:
-        agent_processs.append(Process(target=run_agent, args=(token,)))
+        agent_processes.append(Process(target=run_agent, args=(token,)))
     deliveroo_process.start()
     sleep(1)
-    for agent_process in agent_processs:
+    for agent_process in agent_processes:
         agent_process.start()
         sleep(500 / 1000)  # 300 milliseconds
     deliveroo_process.join()
+    agent_processes[0].join()
 
 
 if __name__ == "__main__":
