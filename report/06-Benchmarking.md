@@ -1,7 +1,7 @@
 # Benchmarking {#sec:benchmarking}
 During the benchmarking phase of the project, six different maps were used to evaluate the proposed solutions. Three maps were specifically designed for the single-agent implementation, while the other three maps were used for the multi-agent implementation.
 
-Each test was conducted by running the agent or agents for a total duration of 5 minutes. It's important to note that there were no strict requirements for result reproducibility, which means that the results may slightly vary across different runs, but they should generally remain within a similar range.
+Each test was conducted by running the agent or agents for a total duration of 5 minutes. It is important to note that there were no strict requirements for result reproducibility (such as random seed initialization), which means that the results may slightly vary across different runs, but they should generally remain within a similar range.
 
 The purpose of the benchmarking phase was to assess the performance and effectiveness of the implemented solutions under realistic conditions and evaluate how well they performed in terms of various metrics such as score, efficiency, and robustness.
 
@@ -48,9 +48,9 @@ It is important to note that the qualitative analysis conducted during the 5-min
 The three maps for the benchmark phase of the multi-agent implementation are quite similar, the mainly differ on size of that is reduced map over map and on the parcel spawn location.
 
 2. *challange_31.js*: multi-linear map with a single perpendicular hallway, no enemy agents, and many parcels with high reward.
-2. *challange_32.js*: multi-linear map without the perpendicular hallway, . 
+2. *challange_32.js*: multi-linear map without the perpendicular hallway, which requires the two agents to collaborate between each other to score some points
 2. *challange_33.js*: 
 
-|              | Chal. 31 | Chal. 32 | Chal. 33 |
-|--------------|----------|----------|----------|
-| Action based |          | 1058     | 387      |
+|                 | Chal. 31 | Chal. 32 | Chal. 33 |
+|-----------------|----------|----------|----------|
+| Action dispatch |          | 1058     | 387      |

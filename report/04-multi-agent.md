@@ -1,5 +1,11 @@
 # Multi agent implementation {#sec:multi-agent}
-The communication protocol utilized in our implementation is built upon a library that provides various endpoints to facilitate the handling of different types of messages. These endpoints include "say" for regular communication, "shout" for broadcasting messages to all agents, "ask" for querying other agents, and "broadcast" for widespread information dissemination. By leveraging these endpoints, agents are able to engage in effective communication and exchange relevant information during the game.
+Building upon the foundation of the single agent implementation described in Section {@sec:single-agent}, we have also developed agents that can collaborate to achieve a shared objective. The communication protocol utilized in our implementation is built upon a library that provides various endpoints to facilitate the handling of different types of messages. These endpoints include "say" for regular communication, "shout" for broadcasting messages to all agents, "ask" for querying other agents, and "broadcast" for widespread information dissemination. By leveraging these endpoints, agents are able to engage in effective communication and exchange relevant information during the game.
+
+Let's now explore three distinct multiagent implementations:
+
+1. Simple information sharing agents that operate in separate areas of the map.
+2. Leader-election based agents where one agent generates and communicates multiple plans to every other agent upon request.
+3. Leader-election based agents where one agent generates a single multiagent plan and communicates it in a syncronized way, action by action, to the each agent responsible for its execution.
 
 ## Information sharing agents {#sec:information-sharing-agents}
 During the game, teams have the ability to share sensed data from the environment among their members. For simplicity, our agents utilize broadcast messages as the means of sharing information, making them visible to all connected agents in the game.
@@ -16,11 +22,11 @@ It is important to note that this approach relies on broadcast communication, wh
 The leader negotiation process plays a pivotal role in the multi-agent architecture, whereby one agent is designated as the leader responsible for computing plans for all other agents.
 
 ### Leader negotiation
-The process of electing a leader is a well-known problem in computer science, but for the purpose of our project, we opted for a simple solution due to our focus on other aspects. The negotiation for the leader role is facilitated through two types of messages: "askforaleader" and "leader".
+The process of electing a leader is a well-known problem in computer science, but for the purpose of our project, we opted for a simple solution due to our focus on other aspects. The negotiation for the leader role is facilitated through two types of messages: "ask-for-leader" and "leader".
 
-Upon connecting to the game and receiving their initial position, each agent broadcasts an "askforaleader" message, inquiring if a leader has already been elected. This message serves as a request for information regarding the existence of a leader. Conversely, the "leader" message is used by the agent who has been elected as the leader to communicate its identity.
+Upon connecting to the game and receiving their initial position, each agent broadcasts an "ask-for-leader" message, inquiring if a leader has already been elected. This message serves as a request for information regarding the existence of a leader. Conversely, the "leader" message is used by the agent who has been elected as the leader to communicate its identity.
 
-Following the transmission of the "askforaleader" message, a timeout period of 2.5 seconds is set. If no response from an existing leader is received within this timeframe, it indicates that no leader has been elected yet. In such a case, the agent who sent the "askforaleader" message assumes the role of the leader and broadcasts a message to inform other agents of its newly elected leader status.
+Following the transmission of the "ask-for-leader" message, a timeout period of 2.5 seconds is set. If no response from an existing leader is received within this timeframe, it indicates that no leader has been elected yet. In such a case, the agent who sent the "ask-for-leader" message assumes the role of the leader and broadcasts a message to inform other agents of its newly elected leader status.
 
 ![Leader negotation.](./images/leader_negotiation.png){ width=250px #fig:leader-negotation}
 
@@ -29,16 +35,9 @@ It is important to note that the simple implementation described above may intro
 This enhanced model implementation can be considered an extension of the approach discussed in Section {@sec:information-sharing-agents}. In addition to sharing information about non-visible areas, this model allows for more comprehensive decision-making by leveraging knowledge derived from the computation of all plans. However, it comes with certain drawbacks. Firstly, it introduces a single point of failure, as all plans are generated by a single node. Secondly, the scalability of the system is limited when dealing with a large number of nodes. On the positive side, the system offers enhanced security, as plan communication occurs through point-to-point communication channels that cannot be accessed by malicious agents.
 
 ### Plan communication
-The plan communication system operates in a straightforward manner. When an agent does not have a plan, it initiates a request for a new plan by sending an askforplan message. This request is implemented using a point-to-point ask primitive, which ensures that the request is directed specifically to the leader. Upon receiving the request, the leader begins the process of computing the plan. Once the computation is complete, the leader sends the list of actions comprising the plan back to the original agent using another point-to-point communication. This ensures that the plan is securely and efficiently transmitted between the leader and the requesting agent.
+As our second multiagent approach, the plan communication system operates in a straightforward manner. When an agent does not have a plan, it initiates a request for a new plan by sending an ask-for-plan message. This request is implemented using a point-to-point ask primitive, which ensures that the request is directed specifically to the leader. Upon receiving the request, the leader begins the process of computing the plan. Once the computation is complete, the leader sends the list of actions comprising the plan back to the original agent using another point-to-point communication. This ensures that the plan is securely and efficiently transmitted between the leader and the requesting agent. Once the plan has been completed by the agent, it will then ask another plan back to the leader.
 
 ![Plan communication.](./images/plan_communication.png){ width=250px #fig:leader-negotation}
-
-### Action dispatch
-Unlike the plan communication system, we have also developed an action dispatch approach between the leader and simple agents. In this scenario, when the leader receives an "ask-for-leader" message, it communicates that it is the current leader and stores the identifier of the requesting agent. The requesting agent will then be considered an active player when generating the next plan.
-
-As explained in Section {@sec:complex-pddl}, in this case, the leader generates a multiagent plan. The leader sends one action at a time to the agent responsible for executing it and waits for an acknowledgement message confirming the action execution by that agent. This process continues until the leader exhausts all remaining actions in the plan. At that point, a new plan is generated.
-
-![Action dispatch.](./images/action_dispatch.png){ width=250px #fig:action-dispatch}
 
 ### Traffic penalty
 In this communication model, the leader serves as the central compute node responsible for generating plans for all agents. This central position grants the leader extensive knowledge about the future movements of other agents. To enhance the computation of potential parcel scores described in Section {@sec:potential-parcel-score}, we have introduced an additional penalty that accounts for traffic considerations and aims to create plans that evenly distribute agents across the entire map.
@@ -51,7 +50,7 @@ In Figure {@fig:traffic-map} it is presented an empty traffic map (on the left) 
 
 ![Traffic map with multiple plans.](./images/traffic_map_final.png){width=250px #fig:traffic-map-final}
 
-With the traffic map it is possible to take a parcel and analyze its neighbours in order to understand if it is a trafficated area and consequentially if it is a good idea to take it.
+Using the traffic map, it is possible to select a parcel and analyze its neighboring areas to determine if it is a congested region. This analysis helps us determine whether it is advisable to proceed with taking that parcel.
 
 The logic behind the traffic penalty is summarized in the following pseudocode:
 
@@ -73,10 +72,17 @@ The logic behind the traffic penalty is summarized in the following pseudocode:
 \end{algorithmic}
 \end{algorithm}
 
-<!-- ## Implementation comparisons
+### Action dispatch
+Unlike the plan communication system, we have also developed a third multiagent solution whoch consists of action dispatch approach between the leader and simple agents. In this scenario, when the leader receives an "ask-for-leader" message, it communicates that it is the current leader and stores the identifier of the requesting agent. The requesting agent will then be considered an active player when generating the next plan.
+
+As explained in Section {@sec:complex-pddl}, in this case, the leader generates a multiagent plan. The leader sends one action at a time to the agent responsible for executing it and waits for an acknowledgement message confirming the action execution by that agent. This process continues until the leader exhausts all remaining actions in the plan. At that point, a new plan is generated.
+
+![Action dispatch.](./images/action_dispatch.png){ width=250px #fig:action-dispatch}
+
+## Implementation comparisons
 
 | **Distributed based**            | **Leader based**               |
 |----------------------------------|--------------------------------|
 | Malicious information injection  | Single point of failure        |
 | Scalable on the number of agents | Single compute node            |
-| Resilient                        | Ability to compute traffic map | -->
+| Resilient                        | Ability to compute traffic map |
