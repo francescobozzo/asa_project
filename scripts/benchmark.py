@@ -27,7 +27,7 @@ def main(args):
     tokens = args.tokens if args.tokens else TOKENS
     for token in tokens:
         agent_processes.append(Process(target=run_agent, args=(token,)))
-    deliveroo_process.start()
+    # deliveroo_process.start()
     sleep(1)
     for agent_process in agent_processes:
         agent_process.start()
