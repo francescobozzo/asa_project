@@ -10,10 +10,12 @@ The first PDDL approach we implemented consists on the simple implementation of 
 The biggest downside of our first PDDL approach is the fact that multiple agents do not actually act together to solve a shared problem. As we will see in the Benchmark section, there are same problems in which there is no solution in case the two agents do not collaborate between each other. For this specific purpose, we decided to build a more detailed model of the belief set to be sent to the PDDL Online Planner by using some more complext PDDL constructs such as typings and forall/when clauses.
 
 Types:
+
 - entity and position which are subclasses of object
 - agent and parcel which are subclasses of entity (since for both of them we can assign a position in them map)
 
 Predicates:
+
 - at: defines the position of an entity in the map
 - can-move: defines whether it is possible to move between two tiles
 - carrying: states whether an agent is carrying a specific parcel
@@ -22,12 +24,14 @@ Predicates:
 - blocked: it is used to block tiles potential agent movemenets to the tile that are already occupied by other agents.
 
 Actions:
+
 - move: an agent can move from a tile to specifically one of its neighbors that is not blocked
 - pickup: an agent can pickup all the packages that are placed on the current tile where the agent is located that are not carried by any other agents.
 - putdown: an agent can put down all the parcels that it is carrying to the current tile where it is placed
 - deliver: an agent can deliver all the parcels that it is carrying if the tile where it is placed is a delivery zone.
 
 Problem initialization:
+
 - list of all the walkable tiles
 - list of the available move between walkable tiles
 - list of tiles that are defined as delivery zones
