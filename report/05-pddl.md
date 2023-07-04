@@ -6,7 +6,7 @@ During the course of the project we developed two different PDDL-based solutions
 The first PDDL approach we implemented consists on the simple implementation of an agent that is able to start from a position, collect a list of specified parcels, and deliver them to a delivery zone. Since there is no way for PDDL to skip some parcels according to their reward and distance, this approach is mainly baised to the agent's intentions when filtering parcels, as we described in the previous sections.
 
 
-## Complex PDDL
+## Complex PDDL {#sec:complex-pddl}
 The biggest downside of our first PDDL approach is the fact that multiple agents do not actually act together to solve a shared problem. As we will see in the Benchmark section, there are same problems in which there is no solution in case the two agents do not collaborate between each other. For this specific purpose, we decided to build a more detailed model of the belief set to be sent to the PDDL Online Planner by using some more complext PDDL constructs such as typings and forall/when clauses.
 
 Types:

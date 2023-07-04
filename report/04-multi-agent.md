@@ -33,6 +33,13 @@ The plan communication system operates in a straightforward manner. When an agen
 
 ![Plan communication.](./images/plan_communication.png){ width=250px #fig:leader-negotation}
 
+### Action dispatch
+Unlike the plan communication system, we have also developed an action dispatch approach between the leader and simple agents. In this scenario, when the leader receives an "ask-for-leader" message, it communicates that it is the current leader and stores the identifier of the requesting agent. The requesting agent will then be considered an active player when generating the next plan.
+
+As explained in Section {@sec:complex-pddl}, in this case, the leader generates a multiagent plan. The leader sends one action at a time to the agent responsible for executing it and waits for an acknowledgement message confirming the action execution by that agent. This process continues until the leader exhausts all remaining actions in the plan. At that point, a new plan is generated.
+
+![Action dispatch.](./images/action_dispatch.png){ width=250px #fig:action-dispatch}
+
 ### Traffic penalty
 In this communication model, the leader serves as the central compute node responsible for generating plans for all agents. This central position grants the leader extensive knowledge about the future movements of other agents. To enhance the computation of potential parcel scores described in Section {@sec:potential-parcel-score}, we have introduced an additional penalty that accounts for traffic considerations and aims to create plans that evenly distribute agents across the entire map.
 
@@ -66,10 +73,10 @@ The logic behind the traffic penalty is summarized in the following pseudocode:
 \end{algorithmic}
 \end{algorithm}
 
-## Implementation comparisons
+<!-- ## Implementation comparisons
 
 | **Distributed based**            | **Leader based**               |
 |----------------------------------|--------------------------------|
 | Malicious information injection  | Single point of failure        |
 | Scalable on the number of agents | Single compute node            |
-| Resilient                        | Ability to compute traffic map |
+| Resilient                        | Ability to compute traffic map | -->
