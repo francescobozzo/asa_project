@@ -32,7 +32,6 @@ def main(args):
     for agent_process in agent_processes:
         agent_process.start()
         sleep(500 / 1000)  # 300 milliseconds
-    deliveroo_process.join()
     agent_processes[0].join()
 
 

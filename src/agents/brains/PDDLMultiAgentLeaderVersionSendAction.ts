@@ -67,7 +67,6 @@ export default class PDDLMulitAgentLeaderVersionSendAction {
               break;
           }
         }
-        console.log(this.plan);
       })
       .catch((error) => {
         console.error('errore nella generazione del piano %s', error);
@@ -78,7 +77,6 @@ export default class PDDLMulitAgentLeaderVersionSendAction {
   }
 
   getAction(agentId: string) {
-    // console.log(this.plan, this.isActionRunning);
     if (this.plan.length === 0) return new LeaderAction(undefined, Action.UNDEFINED);
 
     return this.plan[0];
@@ -99,7 +97,6 @@ export default class PDDLMulitAgentLeaderVersionSendAction {
   }
 
   accomplishAction(agentId: string) {
-    // console.log(this.plan);
     if ((this.plan && this.plan.length === 0) || (this.plan && this.plan[0].agentId !== agentId)) return;
     this.plan.shift();
     // this.plansByAgentIds.get(agentId).shift();

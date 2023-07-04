@@ -12,8 +12,8 @@ type PddlPlanStep = {
 };
 
 export default async function pddlOnlineSolver(pddlDomain: PddlDomain, pddlProblem: PddlProblem) {
-  console.log(pddlDomain.toPddlString());
-  console.log(pddlProblem.toPddlString());
+  // console.log(pddlDomain.toPddlString());
+  // console.log(pddlProblem.toPddlString());
   const response = await fetch('http://solver.planning.domains/solve', {
     method: 'POST',
     headers: {
@@ -28,7 +28,7 @@ export default async function pddlOnlineSolver(pddlDomain: PddlDomain, pddlProbl
 
   const content = await response.json();
   // console.log(content.result.plan);
-  console.log(content);
+  // console.log(content);
 
   if (content['status'] == 'error') {
     if (!content['result'].plan && content['result'].output.split('\n')[0] != ' --- OK.') {

@@ -50,7 +50,6 @@ export default class Carrier {
       if (this.beliefSet.amIInitialized() && !this.isActionRunning) {
         this.isActionRunning = true;
         const action = this.brain.getAction(this.beliefSet.getMyId());
-        console.log(action);
 
         if (
           action &&
@@ -60,50 +59,11 @@ export default class Carrier {
           !this.isActionOtherAgentRunning
         ) {
           this.isActionOtherAgentRunning = true;
-          console.log('invio', [action.action]);
           this.messageHandler.sendPlan(this.beliefSet.getMyId(), action.agentId, this.beliefSet.getMyPosition(), [
             action.action,
           ]);
-        } else if (action) {
-          let result = null;
-          switch (action.action) {
-            case Action.UNDEFINED:
-              break;
-            case Action.PICKUP:
-              result = await client.pickup();
-              if (result.length >= 0) {
-                this.brain.accomplishAction(this.beliefSet.getMyId());
-                if (!this.isMeLeader()) {
-                  this.messageHandler.sendAckAction(action.agentId, this.leaderId, this.beliefSet.getMyPosition());
-                }
-              }
-              break;
-            case Action.PUTDOWN:
-              result = await client.putdown();
-              // console.log(result);
-              if (result.length >= 0) {
-                this.brain.accomplishAction(this.beliefSet.getMyId());
-                this.beliefSet.deleteCarriedParcels();
-                this.messageHandler.sendParcelInform(
-                  this.beliefSet.getMyId(),
-                  this.beliefSet.getMyPosition(),
-                  this.beliefSet.getParcels()
-                );
-                if (!this.isMeLeader()) {
-                  this.messageHandler.sendAckAction(action.agentId, this.leaderId, this.beliefSet.getMyPosition());
-                }
-              }
-              break;
-            default:
-              result = await client.move(action.action.toString());
-              if (result !== false) {
-                this.brain.accomplishAction(this.beliefSet.getMyId());
-                if (!this.isMeLeader()) {
-                  this.messageHandler.sendAckAction(action.agentId, this.leaderId, this.beliefSet.getMyPosition());
-                }
-              }
-              break;
-          }
+        } else if (action && action.agentId === this.beliefSet.getMyId()) {
+          await this.takeAction(action.action, action.agentId);
         }
         this.isActionRunning = false;
       }
@@ -178,15 +138,15 @@ export default class Carrier {
 
       case MessageType.PLAN:
         const returnedPlan = this.messageHandler.handlePlan(message);
-        console.log('receieved', returnedPlan);
         if (this.brain) this.brain.setPlan(this.beliefSet.getMyId(), returnedPlan);
         this.isAskingForPlan = false;
         break;
 
       case MessageType.ACKACTION:
-        this.brain.accomplishAction(message.senderId);
-        this.isActionOtherAgentRunning = false;
-        console.log('ack');
+        if (this.isActionOtherAgentRunning) {
+          this.brain.accomplishAction(message.senderId);
+          this.isActionOtherAgentRunning = false;
+        }
         break;
     }
   }
@@ -214,6 +174,43 @@ export default class Carrier {
 
   printMap() {
     this.beliefSet.printMap();
+  }
+
+  private async takeAction(action: Action, agentId: string) {
+    let result = null;
+    switch (action) {
+      case Action.UNDEFINED:
+        break;
+      case Action.PICKUP:
+        result = await this.client.pickup();
+        this.brain.accomplishAction(this.beliefSet.getMyId());
+        if (!this.isMeLeader()) {
+          this.messageHandler.sendAckAction(agentId, this.leaderId, this.beliefSet.getMyPosition());
+        }
+        break;
+      case Action.PUTDOWN:
+        result = await this.client.putdown();
+        this.brain.accomplishAction(this.beliefSet.getMyId());
+        this.beliefSet.deleteCarriedParcels();
+        this.messageHandler.sendParcelInform(
+          this.beliefSet.getMyId(),
+          this.beliefSet.getMyPosition(),
+          this.beliefSet.getParcels()
+        );
+        if (!this.isMeLeader()) {
+          this.messageHandler.sendAckAction(agentId, this.leaderId, this.beliefSet.getMyPosition());
+        }
+        break;
+      default:
+        result = await this.client.move(action.toString());
+        if (result !== false) {
+          this.brain.accomplishAction(this.beliefSet.getMyId());
+          if (!this.isMeLeader()) {
+            this.messageHandler.sendAckAction(agentId, this.leaderId, this.beliefSet.getMyPosition());
+          }
+        }
+        break;
+    }
   }
 
   private updateMainPlayerSpeedEstimation() {
