@@ -45,12 +45,36 @@ Based on the information provided, it seems that the results obtained in challen
 It is important to note that the qualitative analysis conducted during the 5-minute run is crucial in understanding the agent's performance in this specific environment. The combination of higher parcel rewards, the utilization of the probabilistic model, and the conservative estimation of parcel decay contribute to the agent's improved results in challenge 23.
 
 ## Multi-agent
-The three maps for the benchmark phase of the multi-agent implementation are quite similar, the mainly differ on size of that is reduced map over map and on the parcel spawn location.
+The three maps used for the benchmark phase of the multi-agent implementation provide different scenarios to evaluate the performance of the agents. Let's take a closer look at each challenge:
 
-2. *challange_31.js*: multi-linear map with a single perpendicular hallway, no enemy agents, and many parcels with high reward.
-2. *challange_32.js*: multi-linear map without the perpendicular hallway, which requires the two agents to collaborate between each other to score some points
-2. *challange_33.js*: 
+1. *challenge_31.js*: This map features a multi-linear layout with a single perpendicular hallway. There are no enemy agents present, and there are many parcels with high rewards. This scenario tests the agents' ability to efficiently collect parcels and deliver them to the appropriate delivery zones. The absence of enemy agents allows the agents to focus solely on maximizing their rewards without the added complexity of avoiding conflicts.
+2. *challenge_32.js*: In this map, the multi-linear layout is maintained, but the perpendicular hallway is removed. Instead, the two agents need to collaborate and coordinate their actions to score points. This challenge emphasizes the importance of teamwork and communication between the agents. They must work together to collect parcels and deliver them effectively, taking into account the limitations imposed by the modified map layout.
+3. *challenge_33.js*: This challenge is a modified version of challenge_31.js, where the map is divided into two different blocks. This division introduces additional complexity and requires the agents to navigate between the blocks to collect and deliver parcels. It tests the agents' ability to plan and coordinate their movements efficiently, considering the divided nature of the map.
+
+By evaluating the agents' performance on these three challenges, it is possible to assess their ability to adapt to different map layouts, collaborate with other agents, and make strategic decisions based on the specific game conditions.
 
 |                 | Chal. 31 | Chal. 32 | Chal. 33 |
 |-----------------|----------|----------|----------|
 | Action dispatch |          | 1058     | 387      |
+
+### Challenge 31
+
+### Challenge 32
+This map is the most interesting case study for the evaluation. There are two different approaches, where the agents can spawn on different rows or in the same row, they present unique challenges and require different strategies.
+
+In the scenario where the agents spawn in the same row, the narrow road and the presence of both agents create a need for deep coordination and collaboration. One agent needs to bring parcels closer to the other agent, who can then deliver them. This coordination requires careful planning and communication between the agents to ensure efficient parcel collection and delivery.
+
+On the other hand, when the agents spawn on different rows, they act as separate entities since they cannot block each other's paths. This reduces the need for direct coordination, but still requires effective decision-making and resource allocation between the two agents. The high parcel rewards and the large number of parcels in this scenario contribute to achieving a very high result.
+
+Additionally, the infinite visibility radius eliminates the need for exploration, allowing the agents to focus solely on optimizing their actions based on the available information.
+
+Overall, the evaluation of the multi-agent implementation in this challenging scenario showcases the agents' ability to coordinate their actions, strategically handle parcel collection and delivery, and take advantage of the high parcel rewards to achieve a favorable outcome.
+
+### Challenge 33
+The modified version of challenge 31 presents a scenario that requires a less refined strategy compared to the previous challenges. There is no specific strategy needed for the exchange of parcels between agents, as each agent can independently compute its own plan and divide the parcels to pick up.
+
+One of the notable aspects of this challenge is the configuration of the map, particularly the visibility radius. With a reduced visibility radius, the agents are required to explore the map to discover new parcels. However, the map is designed with a good distribution of parcels, allowing the agents to find a sufficient number of parcels within their visibility range. After a couple of deliveries, the need for further exploration decreases as the agents become more familiar with the map layout.
+
+The map being divided into blocks adds an additional element to the challenge. Agents can spawn in the same block or different locations, but the overall behavior and strategies remain consistent. The agents can still compute individual plans and divide the parcels accordingly.
+
+Overall, this modified challenge offers an interesting combination of reduced visibility, exploration requirements, and map division. It allows the agents to adapt their strategies accordingly and optimize their parcel collection and delivery processes.
