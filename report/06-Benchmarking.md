@@ -53,9 +53,11 @@ The three maps used for the benchmark phase of the multi-agent implementation pr
 
 By evaluating the agents' performance on these three challenges, it is possible to assess their ability to adapt to different map layouts, collaborate with other agents, and make strategic decisions based on the specific game conditions.
 
-|                 | Chal. 31 | Chal. 32 | Chal. 33 |
-|-----------------|----------|----------|----------|
-| Action dispatch |          | 1058     | 387      |
+|                     | Chal. 31 | Chal. 32 | Chal. 33 |
+|---------------------|----------|----------|----------|
+| Information sharing | 786      | 0        | 0        |
+| Plan communication  | 323      | 0        | 0        |
+| Action dispatch     | 873      | 1058     | 387      |
 
 ### Challenge 31
 
