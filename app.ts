@@ -14,7 +14,8 @@ const carrier = new Carrier(
   Config.BrainType,
   Config.ParcelDecayLearningRate,
   Config.MainPlayerSpeedLearningRate,
-  Config.AgentClock
+  Config.AgentClock,
+  Config.MaxCarriedParcel
 );
 
 client.socket.on('map', (width: number, height: number, tiles: any) => {

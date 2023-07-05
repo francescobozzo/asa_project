@@ -68,4 +68,5 @@ export default {
   UseTrafficMultiAgentLeaderVersion: process.env.USE_TRAFFIC_MULTI_AGENT_LEADER_VERSION
     ? process.env.USE_TRAFFIC_MULTI_AGENT_LEADER_VERSION === 'true'
     : false,
+  MaxCarriedParcel: parseInt(process.env.MAX_CARRIED_PARCEL) ?? 100,
 };

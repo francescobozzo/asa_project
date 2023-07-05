@@ -70,8 +70,8 @@ export default class GameMap {
   }
 
   toPddlProblem() {
-    const tileObjects: string[] = [];
-    const moveInits: string[] = [];
+    const tileObjectsSet = new Set<string>();
+    const moveInitsSet = new Set<string>();
 
     // iterate over the map
     for (let i = 0; i < this.height; i++) {
@@ -82,14 +82,14 @@ export default class GameMap {
         if (!current.isWalkable) continue;
 
         // add tile to the list of objects
-        tileObjects.push(`${current.toPddl()} - position`);
+        tileObjectsSet.add(`${current.toPddl()} - position`);
 
         // if delivery zones ad to inits
-        if (current.isDelivery) moveInits.push(`delivery ${current.toPddl()}`);
+        if (current.isDelivery) moveInitsSet.add(`delivery ${current.toPddl()}`);
 
         for (const neighbor of getNeighboursFromTile(current, this.map)) {
-          moveInits.push(`can-move ${current.toPddl()} ${neighbor.toPddl()}`);
-          moveInits.push(`can-move ${neighbor.toPddl()} ${current.toPddl()}`);
+          moveInitsSet.add(`can-move ${current.toPddl()} ${neighbor.toPddl()}`);
+          moveInitsSet.add(`can-move ${neighbor.toPddl()} ${current.toPddl()}`);
 
           // TODO penso che questa si possa togliere tranquillamente
           // if (
@@ -102,6 +102,8 @@ export default class GameMap {
       }
     }
 
+    const moveInits = Array.from(moveInitsSet);
+    const tileObjects = Array.from(tileObjectsSet);
     return { tileObjects, moveInits };
   }
 

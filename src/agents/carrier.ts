@@ -29,22 +29,26 @@ export default class Carrier {
   private isActionRunning = false;
   private isActionOtherAgentRunning = false;
   private friendlyAgents = new Set<string>();
+  private maxCarriedParcel: number;
 
   constructor(
     client: DeliverooApi,
     brainType: BRAIN_TYPE,
     parcelDecayLR: number,
     mainPlayerSpeedLR: number,
-    agentClock: number
+    agentClock: number,
+    maxCarriedParcel: number
   ) {
     this.beliefSet = new BeliefSet(parcelDecayLR);
     this.messageHandler = new MessageHandler(client);
     this.mainPlayerSpeedLR = mainPlayerSpeedLR;
     this.client = client;
+    this.maxCarriedParcel = maxCarriedParcel;
 
     setInterval(async () => {
       if (this.leaderId && this.beliefSet.amIInitialized() && this.isMeLeader()) {
-        this.brain.computePlan(this.beliefSet.getReachableParcels(), this.beliefSet.toPddlProblem(this.friendlyAgents));
+        const parcelsToPick = this.beliefSet.getReachableParcels().slice(0, this.maxCarriedParcel);
+        this.brain.computePlan(parcelsToPick, this.beliefSet.toPddlProblem(this.friendlyAgents));
       }
 
       if (this.beliefSet.amIInitialized() && !this.isActionRunning) {
