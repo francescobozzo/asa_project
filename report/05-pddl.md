@@ -30,6 +30,8 @@ Problem initialization:
 - A list of tiles designated as delivery zones.
 - A list of all the parcels that the agent must deliver in order to complete the plan.
 
+Goal: deliver all the listed parcels.
+
 ## PDDL planning more agents at a time {#sec:many-pddl}
 The main drawback of our initial PDDL approach is the lack of collaboration among multiple agents to solve a shared problem. As discussed in the Section {@sec:benchmarking}, certain problems cannot be solved unless the two agents collaborate with each other. To address this issue, we decided to develop a more intricate belief model to be sent to the PDDL Online Planner, utilizing complex PDDL constructs such as typings and forall/when clauses.
 
@@ -63,5 +65,7 @@ Problem initialization:
 - A list of all agents participating in the shared plan.
 - A list of all the parcels that must be delivered, including both those to pick up and the ones already carried.
 - A list of blocked tiles occupied by agents.
+
+Goal: delivered all the listed parcels.
 
 The final PDDL plan involves a multiagent approach, where multiple agents collaborate to solve a single problem. To implement this approach using the leader-election paradigm, we chose to have the leader send one action at a time (similar to a single-action plan) to the agent responsible for executing the action according to the planned schedule. As described in {@sec:action-dispatch}, this mechanism also necessitates an acknowledgment messaging system from the agent performing the action to the team leader.
