@@ -64,11 +64,11 @@ By evaluating the agents' performance on these three challenges, it is possible 
 ### Challenge 32
 This map is the most interesting case study for the evaluation. There are two different approaches, where the agents can spawn on different rows or in the same row, they present unique challenges and require different strategies.
 
-In the scenario where the agents spawn in the same row, the narrow road and the presence of both agents create a need for deep coordination and collaboration. One agent needs to bring parcels closer to the other agent, who can then deliver them. This coordination requires careful planning and communication between the agents to ensure efficient parcel collection and delivery.
+In the scenario where the agents spawn in the same row, the narrow road and the presence of both agents create a need for deep coordination and collaboration. One agent needs to bring parcels closer to the other agent, who can then deliver them. This coordination requires careful planning and communication between the agents to ensure efficient parcel collection and delivery, which only the action dispatch approach is able to offer among the different methods we developed.
 
 On the other hand, when the agents spawn on different rows, they act as separate entities since they cannot block each other's paths. This reduces the need for direct coordination, but still requires effective decision-making and resource allocation between the two agents. The high parcel rewards and the large number of parcels in this scenario contribute to achieving a very high result.
 
-Additionally, the infinite visibility radius eliminates the need for exploration, allowing the agents to focus solely on optimizing their actions based on the available information.
+Furthermore, the infinite visibility radius eliminates the necessity for map exploration, enabling agents to concentrate exclusively on optimizing their actions using the provided information. On the flip side, agents must judiciously choose the parcels to include in their desire set by filtering out unreachable ones. In our case, we implemented a Breadth-first search to identify non-reachable parcels as part of the intentions filtering process.
 
 Overall, the evaluation of the multi-agent implementation in this challenging scenario showcases the agents' ability to coordinate their actions, strategically handle parcel collection and delivery, and take advantage of the high parcel rewards to achieve a favorable outcome.
 

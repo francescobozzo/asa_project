@@ -4,8 +4,8 @@ Building upon the foundation of the single agent implementation described in Sec
 Let's now explore three distinct multiagent implementations:
 
 1. Simple information sharing agents that operate in separate areas of the map.
-2. Leader-election based agents where one agent generates and communicates multiple plans to every other agent upon request.
-3. Leader-election based agents where one agent generates a single multiagent plan and communicates it in a syncronized way, action by action, to the each agent responsible for its execution.
+2. Leader-election based agents where one agent generates and communicates multiple plans to every other agent upon request, referred as "plan communication" approach.
+3. Leader-election based agents where one agent generates a single multiagent plan and communicates it in a syncronized way, action by action, to the each agent responsible for its execution, referred as "action dispatch" approach.
 
 ## Information sharing agents {#sec:information-sharing-agents}
 During the game, teams have the ability to share sensed data from the environment among their members. For simplicity, our agents utilize broadcast messages as the means of sharing information, making them visible to all connected agents in the game.
