@@ -72,7 +72,7 @@ The logic behind the traffic penalty is summarized in the following pseudocode:
 \end{algorithmic}
 \end{algorithm}
 
-### Action dispatch
+### Action dispatch {#sec:action-dispatch}
 Unlike the plan communication system, we have also developed a third multiagent solution whoch consists of action dispatch approach between the leader and simple agents. In this scenario, when the leader receives an "ask-for-leader" message, it communicates that it is the current leader and stores the identifier of the requesting agent. The requesting agent will then be considered an active player when generating the next plan.
 
 As explained in Section {@sec:complex-pddl}, in this case, the leader generates a multiagent plan. The leader sends one action at a time to the agent responsible for executing it and waits for an acknowledgement message confirming the action execution by that agent. This process continues until the leader exhausts all remaining actions in the plan. At that point, a new plan is generated.
