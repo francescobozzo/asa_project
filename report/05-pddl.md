@@ -52,6 +52,7 @@ Predicates:
 - "blocked" is used to block potential agent movements to tiles already occupied by other agents.
 
 Actions:
+
 - "move": an agent can move from one tile to a neighboring tile that is not blocked.
 - "pickup": an agent can collect parcels present on the current tile if they are not already being carried by any agent.
 - "putdown": an agent can place all the parcels it is carrying onto the current tile.

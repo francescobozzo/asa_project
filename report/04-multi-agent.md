@@ -48,7 +48,7 @@ To facilitate this, a traffic map is maintained on the leader. This map is a cop
 
 In Figure {@fig:traffic-map} it is presented an empty traffic map (on the left) with the respective delivery zones, after the computation of a plan the traffic map is updated (on the right). This process is applied for every generated plan and the final result is presented in Figure {@fig:traffic-map-final}, it is clear that some tiles are more trafficate than others.
 
-![Traffic map with multiple plans.](./images/traffic_map_final.png){width=250px #fig:traffic-map-final}
+![Traffic map with multiple plans.](./images/traffic_map_final.png){width=150px #fig:traffic-map-final}
 
 Using the traffic map, it is possible to select a parcel and analyze its neighboring areas to determine if it is a congested region. This analysis helps us determine whether it is advisable to proceed with taking that parcel.
 
@@ -75,14 +75,6 @@ The logic behind the traffic penalty is summarized in the following pseudocode:
 ### Action dispatch {#sec:action-dispatch}
 Unlike the plan communication system, we have also developed a third multiagent solution whoch consists of action dispatch approach between the leader and simple agents. In this scenario, when the leader receives an "ask-for-leader" message, it communicates that it is the current leader and stores the identifier of the requesting agent. The requesting agent will then be considered an active player when generating the next plan.
 
-As explained in Section {@sec:complex-pddl}, in this case, the leader generates a multiagent plan. The leader sends one action at a time to the agent responsible for executing it and waits for an acknowledgement message confirming the action execution by that agent. This process continues until the leader exhausts all remaining actions in the plan. At that point, a new plan is generated.
+As explained in Section {@sec:many-pddl}, in this case, the leader generates a multiagent plan. The leader sends one action at a time to the agent responsible for executing it and waits for an acknowledgement message confirming the action execution by that agent. This process continues until the leader exhausts all remaining actions in the plan. At that point, a new plan is generated.
 
 ![Action dispatch.](./images/action_dispatch.png){ width=250px #fig:action-dispatch}
-
-## Implementation comparisons
-
-| **Distributed based**            | **Leader based**               |
-|----------------------------------|--------------------------------|
-| Malicious information injection  | Single point of failure        |
-| Scalable on the number of agents | Single compute node            |
-| Resilient                        | Ability to compute traffic map |

@@ -39,7 +39,7 @@ The challenges posed by fast decaying parcels and the dynamic nature of estimati
 Based on the information provided, it seems that the results obtained in challenge 23 are relatively better compared to the previous challenges. This can be attributed to several factors:
 
 1. Higher Parcel Rewards: The challenge is designed in such a way that the parcel rewards are higher compared to the previous challenges. This means that even if the agent encounters some delays or inefficiencies in its plan, the overall rewards obtained from delivering parcels are still significant.
-2. Probabilistic Model: Although not explicitly mentioned for challenge 23, it can be assumed that the probabilistic model was utilized in this scenario as well. The probabilistic model takes into account the distance between parcels and opponent agents to estimate the likelihood of successfully delivering a parcel. In a scenario with smaller roads and many enemy agents, this model could help the agent make more informed decisions about which parcels to prioritize and avoid potential collisions or conflicts.
+2. Probabilistic Model: The probabilistic model takes into account the distance between parcels and opponent agents to estimate the likelihood of successfully delivering a parcel. In a scenario with smaller roads and many enemy agents, this model could help the agent make more informed decisions about which parcels to prioritize and avoid potential collisions or conflicts.
 3. Parcel Decay Estimation: The conservative estimation of parcel decay may also play a role in the agent's success in challenge 23. By being cautious and considering the potential decay of parcels, the agent is more likely to prioritize parcels with higher rewards and deliver them before their values decrease significantly.
 
 It is important to note that the qualitative analysis conducted during the 5-minute run is crucial in understanding the agent's performance in this specific environment. The combination of higher parcel rewards, the utilization of the probabilistic model, and the conservative estimation of parcel decay contribute to the agent's improved results in challenge 23.
@@ -60,6 +60,11 @@ By evaluating the agents' performance on these three challenges, it is possible 
 | Action dispatch     | 873      | 1058     | 387      |
 
 ### Challenge 31
+In the context of challenge 31, which features a large map with a high number of parcels and an infinite visibility radius, efficiency issues were encountered due to the large number of nodes in the graph used during the PDDL algorithm. To mitigate this problem, an additional hyper-parameter was introduced to limit the number of parcels taken during a plan. By constraining the number of parcels considered in the planning process, the complexity of the PDDL computation can be significantly reduced.
+
+The introduction of this hyper-parameter allows for a more efficient planning process by focusing on a subset of parcels. By selectively considering a limited number of parcels, the number of nodes in the graph used by the PDDL algorithm is reduced, leading to improved efficiency and faster plan computation.
+
+This hyper-parameter provides a trade-off between computational complexity and the agent's ability to select the most beneficial parcels. By tuning this parameter, it is possible to strike a balance between the complexity of the planning process and the quality of the resulting plans.
 
 ### Challenge 32
 This map is the most interesting case study for the evaluation. There are two different approaches, where the agents can spawn on different rows or in the same row, they present unique challenges and require different strategies.

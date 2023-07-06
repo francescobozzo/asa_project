@@ -57,7 +57,7 @@ Apart from estimating the agent's speed, our agents are also capable of estimati
 \Procedure{updateParcelsDecayEstimation}{$\mathcal{P}, d, \phi_2$}
 \State $\text{deltas} \gets []$ \Comment{Initialize an empty array of deltas}
 \ForAll {$\text{parcel}\ p_i \in \mathcal P$}
-\State $deltas.concat(getParcelDecayEstimation(p.timestamps))$ \Comment{}
+\State $deltas.concat(getParcelDecayEst(p.timestamps))$ \Comment{}
 \EndFor
 
 \State $c \gets d * (1 - \phi_2)$ \Comment{Current decay contribution}

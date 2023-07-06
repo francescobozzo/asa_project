@@ -37,7 +37,7 @@ There are several architectural options available for constructing an agent with
         \State $D \gets \text{options}(B)$ \Comment{Desires computation}
         \State $I \gets \text{filters}(B, D, I)$ \Comment{Intention update}
         \State $\pi \gets \text{plan}(B, I)$ \Comment{Plan computation}
-        \While {not ($\text{empty}(\pi)\text{ or succeeded}(I, B)\text{ or impossible}(I, B))$}
+        \While {not ($\text{empty}(\pi)\text{ or succ}(I, B)\text{ or impos}(I, B))$}
             \State $\alpha \gets hd(\pi)$ \Comment{Get next action}
             \State $\text{execute}(\alpha)$ \Comment{Execute action}
             \State $\pi \gets \text{tail}(\pi)$ \Comment{Remove executed action}
