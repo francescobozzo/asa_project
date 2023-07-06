@@ -1,5 +1,7 @@
 # Exam project for Autonomous Software Agents 2023 @UniTN
 
+<img src="./assets/game.gif" width="300"/> 
+
 Students:
 
 - Federico Izzo: 229316
